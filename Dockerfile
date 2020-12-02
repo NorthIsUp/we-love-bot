@@ -1,8 +1,7 @@
 FROM python:3.9
+WORKDIR /app
 
 RUN python -m pip install --no-cache pip-tools
-
-WORKDIR /app
 
 COPY requirements.in ./
 RUN pip-compile requirements.in \
