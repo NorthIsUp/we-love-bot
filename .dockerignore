@@ -1,9 +1,0 @@
-.dockerignore
-.mypy_cache
-.vscode
-.envrc
-.pre-commit
-
-Dockerfile
-Makefile
-requirements*.txt
