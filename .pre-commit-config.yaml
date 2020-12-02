@@ -29,3 +29,4 @@ repos:
   rev: v0.15.0
   hooks:
   - id: gitlint
+    args: [--contrib=CT1, --msg-filename]
