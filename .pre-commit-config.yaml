@@ -1,0 +1,31 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+  - id: check-yaml
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+- repo: git@github.com:discord/black.git
+  rev: discord
+  hooks:
+  - id: black
+    language: python
+    language_version: python3.7
+    entry: python -m black
+    types:
+    - file
+    files: ^.*.sml$
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v1.5.0
+  hooks:
+  - id: pretty-format-yaml
+    args: [--autofix, --indent, '2']
+- repo: https://github.com/pycqa/isort
+  rev: 5.5.2
+  hooks:
+  - id: isort
+    files: northisbot/.*
+- repo: https://github.com/jorisroovers/gitlint
+  rev: v0.15.0
+  hooks:
+  - id: gitlint
