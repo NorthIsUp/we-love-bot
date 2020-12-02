@@ -1,7 +1,6 @@
 FROM python:3.9
 
-RUN python -m pip install --no-cache \
-    pip-tools
+RUN python -m pip install --no-cache pip-tools
 
 WORKDIR /app
 
