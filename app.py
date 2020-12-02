@@ -1,31 +1,13 @@
-try:
-    import os, sys
-    from logging import getLogger
-    from pathlib import Path
+import os, sys
+from logging import getLogger
+from pathlib import Path
 
-    from os.path import dirname, basename, isfile, join
-    import glob
-
-    print("from", dirname(__file__))
-    modules = glob.glob(join(dirname(__file__), "*.py"))
-    __all__ = [
-        basename(f)[:-3] for f in modules if isfile(f) and not f.endswith("__init__.py")
-    ]
-    print(__all__)
-
-    from . import northisbot
-    from northisbot import bot
-    from northisbot.bot import NorthIsBot
-    from northisbot.config import configure_logging
-
-except ImportError as e:
-    print(e)
-    print(sys.path)
-    raise
-root = Path(__file__).parent
+from northisbot import bot
+from northisbot.bot import NorthIsBot
+from northisbot.config import configure_logging
 
 logger = getLogger(__name__)
-
+root = Path(__file__).parent
 
 configure_logging()
 
