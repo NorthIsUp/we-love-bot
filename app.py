@@ -1,4 +1,4 @@
-import os, sys
+import os
 from logging import getLogger
 from pathlib import Path
 
@@ -14,11 +14,6 @@ logger.info("starting bot")
 
 bot = NorthIsBot("!")
 bot.discover_extensions(root / "northisbot")
-
-
-@bot.command()
-async def ping(ctx, arg):
-    await ctx.send(arg)
 
 
 bot.run(os.environ["DISCORD_NORTHISBOT_TOKEN"])

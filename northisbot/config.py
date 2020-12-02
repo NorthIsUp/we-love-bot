@@ -24,12 +24,12 @@ def configure_logging():
                 "level": logging.INFO,
                 "propagate": False,
             },
-            "tourguide": {
+            "northisbot": {
                 "handlers": ["console"],
                 "level": logging.DEBUG,
                 "propagate": False,
             },
-            "tourguide.config": {
+            "northisbot.config": {
                 "handlers": ["console"],
                 "level": logging.INFO,
                 "propagate": False,

@@ -26,7 +26,7 @@ docker-build: Dockerfile
 	docker build -t $(NAME):$(TAG) -f $< .
 
 run: docker-build
-	docker run $(NAME):$(TAG)
+	docker run -e DISCORD_NORTHISBOT_TOKEN=${DISCORD_NORTHISBOT_TOKEN} $(NAME):$(TAG)
 
 dev: requirements-dev.txt
 test: requirements-test.txt
