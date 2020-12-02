@@ -2,7 +2,6 @@ import os, sys
 from logging import getLogger
 from pathlib import Path
 
-from northisbot import bot
 from northisbot.bot import NorthIsBot
 from northisbot.config import configure_logging
 
