@@ -1,0 +1,6 @@
+.*
+.dockerignore
+.mypy_cache
+.vscode
+.envrc
+.pre-commit
