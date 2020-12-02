@@ -1,5 +1,8 @@
 # collect all *.in files
 REQ_IN := $(wildcard *.in)
+DOCKERFILE := $(wildcard Dockerfile)
+NAME = northisbot
+TAG = latest
 
 # generate *.txt file names from *.in name
 REQ_TXT = $(REQ_IN:%.in=%.txt)
@@ -19,12 +22,11 @@ $(REQ_TXT): %.txt: %.in
 pip-install-test: requirements-test.txt
 	pip install -r $<
 
-docker: Dockerfile
-	docker build --pull --rm -f Dockerfile -t northisbot:latest "."
+docker-build: Dockerfile
+	docker build -t $(NAME):$(TAG) -f $< .
 
-run: requirements.txt
-	echo "+ running"
-	./entrypoint.sh
+run: docker-build
+	docker run $(NAME):$(TAG)
 
 dev: requirements-dev.txt
 test: requirements-test.txt
@@ -34,4 +36,4 @@ clean:
 	find . -iname '*.pyc' -delete
 
 all: run
-.PHONY: all requirements.txt
+.PHONY: all requirements.txt docker-build
