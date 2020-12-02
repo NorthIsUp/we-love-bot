@@ -9,3 +9,4 @@ RUN pip-compile requirements.in \
 
 COPY app.py entrypoint.sh northisbot ./
 ENTRYPOINT [ "entrypoint.sh" ]
+CMD ["run"]
