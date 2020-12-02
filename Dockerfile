@@ -1,5 +1,6 @@
 FROM python:3.9
 
+RUN pwd
 RUN python -m pip install pip-tools
 
 WORKDIR /app
