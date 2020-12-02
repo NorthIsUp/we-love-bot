@@ -7,8 +7,5 @@ COPY requirements.in ./
 RUN pip-compile requirements.in \
     && python -m pip install  --no-cache -r requirements.txt
 
-COPY northisbot ./
-RUN python -m pip install -e .
-
-COPY app.py entrypoint.sh ./
+COPY app.py entrypoint.sh northisbot ./
 ENTRYPOINT [ "entrypoint.sh" ]
