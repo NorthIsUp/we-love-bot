@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timedelta
 from logging import getLogger
-from typing import ClassVar, Dict, Set
+from typing import ClassVar, Dict
 
 from discord.ext import commands
 
