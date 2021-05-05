@@ -23,7 +23,9 @@ class WebCog(commands.Cog):
         self.host = config.get('HOST', '0.0.0.0')
         self.port = config.get('PORT', 8080)
 
-        self.app = web.Application(middlewares=[web.normalize_path_middleware] + self.middlewares)
+        middlewares = [web.normalize_path_middleware()] + self.middlewares
+        self.app = web.Application(middlewares=middlewares)
+
         attrs = [getattr(self, h) for h in dir(self) if getattr(self, h)]
         route_attrs = [attr for attr in attrs if getattr(attr, 'is_route', None)]
 
@@ -39,6 +41,7 @@ class WebCog(commands.Cog):
 
     @classmethod
     def route(cls, method: MethodsT, path: str):
+        path = path if path[-1] == '/' else f'{path}/'
         def decorator(func) -> Callable[[web.Request], web.Response]:
             @wraps(func)
             async def wrapper(self, request: web.Request) -> web.Response:
@@ -58,7 +61,7 @@ class WebCog(commands.Cog):
         self.site = web.TCPSite(runner, self.host, self.port)
 
         logger.info('starting site')
-        await self.bot.loop.create_task(self.site.start())
+        self.bot.loop.create_task(self.site.start())
 
     def __unload(self):
         asyncio.ensure_future(self.site.stop())
