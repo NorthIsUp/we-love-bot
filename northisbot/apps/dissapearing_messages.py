@@ -1,4 +1,5 @@
 import asyncio
+import re
 from datetime import datetime, timedelta
 from logging import getLogger
 from typing import ClassVar, Dict
@@ -37,7 +38,12 @@ class DissapearingMessages(commands.Cog):
             if not channel:
                 continue
 
-            max_age = timedelta(seconds=age_in_seconds)
+            match = re.match('^max_age=(?P<max_age>[0-9]+)', channel.topic, re.IGNORECASE)
+            if match:
+                max_age = match.groups()[0]
+            else:
+                max_age = timedelta(seconds=age_in_seconds)
+
             async for message in channel.history():
                 if datetime.utcnow() - message.created_at > max_age:
                     logger.info(f'cleaning {message.id}')

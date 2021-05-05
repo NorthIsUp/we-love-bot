@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import pkgutil
 from logging import Logger, getLogger
@@ -24,7 +25,7 @@ class NorthIsBot(commands.Bot):
             if not location.exists():
                 continue
 
-            for (module_loader, name, ispkg) in pkgutil.iter_modules([location]):
+            for (module_loader, name, ispkg) in pkgutil.iter_modules([str(location)]):
                 mod = importlib.import_module(f"{path.name}.{location.name}.{name}")
                 for name in dir(mod):
                     self.discover_extension(name, mod)
@@ -35,9 +36,7 @@ class NorthIsBot(commands.Bot):
         if name.startswith("_") or isinstance(loadable, (ModuleType, Logger)):
             pass
         elif isinstance(loadable, commands.Cog):
-            logger.info(
-                f"- discovred Cog instance {loadable.__name__}@{repr(loadable)}"
-            )
+            logger.info(f"- discovred Cog instance {loadable.__name__}@{repr(loadable)}")
             self.add_cog(loadable)
         elif isinstance(loadable, type) and issubclass(loadable, commands.Cog):
             logger.info(f"- discovred Cog class {loadable.__name__}@{repr(loadable)}")
@@ -48,9 +47,7 @@ class NorthIsBot(commands.Bot):
         else:
             logger.debug(f"skipping {name}")
 
-    async def send_message(
-        self, message: discord.Message, response: str, img_url: str = None
-    ):
+    async def send_message(self, message: discord.Message, response: str, img_url: str = None):
         for small_response in (r.strip() for r in response.split("\n\n") if r.strip()):
             await message.channel.trigger_typing()
             await message.channel.send(small_response)

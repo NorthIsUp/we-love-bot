@@ -6,6 +6,7 @@ TAG = latest
 
 # generate *.txt file names from *.in name
 REQ_TXT = $(REQ_IN:%.in=%.txt)
+PIP_INSTALL = $(REQ_IN:%.in=%)
 
 bootstrap:
 bootstrap: pre-commit pip-install
@@ -19,8 +20,14 @@ $(REQ_TXT): %.txt: %.in
 	pip-compile $< --output-file $@
 	pip install -r $@
 
-pip-install-test: requirements-test.txt
+pip-$(PIP_INSTALL): %: %.in
 	pip install -r $<
+
+# pip-install: requirement.txt
+# 	pip install -r $<
+
+# pip-install-test: requirements-test.txt
+# 	pip install -r $<
 
 docker-build: Dockerfile
 	docker build -t $(NAME):$(TAG) -f $< .

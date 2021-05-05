@@ -18,7 +18,12 @@ def configure_logging():
             }
         },
         "loggers": {
-            "": {"handlers": ["console"], "level": logging.DEBUG, "propagate": False},
+            "": {"handlers": ["console"], "level": logging.DEBUG, "propagate": True},
+            "__main__": {
+                "handlers": ["console"],
+                "level": logging.INFO,
+                "propagate": False,
+            },
             "discord": {
                 "handlers": ["console"],
                 "level": logging.INFO,
