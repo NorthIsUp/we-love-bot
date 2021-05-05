@@ -3,7 +3,7 @@ from logging.config import dictConfig
 
 logger = logging.getLogger(__name__)
 
-
+_info_config = {"handlers": ["console"], "level": logging.INFO, "propagate": False}
 def configure_logging():
     logging_config = {
         "version": 1,
@@ -19,6 +19,13 @@ def configure_logging():
         },
         "loggers": {
             "": {"handlers": ["console"], "level": logging.DEBUG, "propagate": True},
+
+            'aiohttp.access': _info_config,
+            'aiohttp.client': _info_config,
+            'aiohttp.internal': _info_config,
+            'aiohttp.server': _info_config,
+            'aiohttp.web': _info_config,
+            'aiohttp.websocket': _info_config,
             "__main__": {
                 "handlers": ["console"],
                 "level": logging.INFO,

@@ -6,5 +6,5 @@ from northisbot.lib.web import WebCog
 class IncomingWebHooks(WebCog):
 
     @WebCog.route('GET', '/hello')
-    async def foo(request: Request) -> Response:
-        return Response('hello there')
+    async def foo(self, request: Request) -> Response:
+        return Response(text='hello there')
