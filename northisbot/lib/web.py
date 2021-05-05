@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from functools import wraps
-from typing import Callable, ClassVar, List, Literal
+from typing import Callable, ClassVar, Iterable, List, Literal, Optional
 
 from aiohttp import web, web_middlewares
 from discord.ext import commands
@@ -26,11 +26,12 @@ class WebCog(commands.Cog):
         middlewares = [web.normalize_path_middleware()] + self.middlewares
         self.app = web.Application(middlewares=middlewares)
 
-        attrs = [getattr(self, h) for h in dir(self) if getattr(self, h)]
-        route_attrs = [attr for attr in attrs if getattr(attr, 'is_route', None)]
+        def _route_attrs() -> Iterable[Callable]:
+            for name in dir(self):
+                if getattr(attr := getattr(self, name), 'is_route', False):
+                    yield attr
 
-
-        for handler in route_attrs:
+        for handler in _route_attrs():
             logger.info(f'adding route: {handler.method} {handler.path}')
             adder = getattr(self.app.router, f'add_{handler.method.lower()}')
             adder(handler.path, handler)
