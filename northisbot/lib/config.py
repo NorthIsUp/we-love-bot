@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 
 _MISSING = object()
 
+
 class Config(ABC):
-    def get(self, key: str, default: str=_MISSING) -> str:
+    def get(self, key: str, default: str = _MISSING) -> str:
         try:
             key = self._key(key)
             value = self[key]
@@ -24,13 +25,13 @@ class Config(ABC):
         else:
             logger.debug(f'config hit: {key}')
 
-    def _key(self, key: str)-> str:
+    def _key(self, key: str) -> str:
         return key
-
 
     @abstractmethod
     def __getitem__(self, key: str) -> str:
         pass
+
 
 @dataclass
 class AppConfig(Config):
@@ -47,15 +48,16 @@ class AppConfig(Config):
     def __getitem__(self, key: str) -> str:
         return environ[key]
 
+
 @dataclass
 class GistConfig(Config):
     gist_id: int
 
     def __post_init__(self) -> None:
         from simplegist import Simplegist
-        gh_gist = Simplegist(username="USERNAME", api_token="API_TOKEN")
-        self._gist = gh_gist[self.gist_id]
 
+        gh_gist = Simplegist(username='USERNAME', api_token='API_TOKEN')
+        self._gist = gh_gist[self.gist_id]
 
     def __getitem__(self, key: str) -> str:
         return self._gist[key]

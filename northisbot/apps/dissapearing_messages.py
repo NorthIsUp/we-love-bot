@@ -12,6 +12,7 @@ AgeT = int
 logger = getLogger(__name__)
 _one_hour = 3600
 
+
 class DissapearingMessages(commands.Cog):
     dissapearing_channels: ClassVar[Dict[ChannelIdT, AgeT]] = {
         799723513014386708: 6 * _one_hour,
@@ -31,14 +32,16 @@ class DissapearingMessages(commands.Cog):
             await asyncio.sleep(60)
 
     async def cleanup(self):
-        logger.info("cleaning up messages")
+        logger.info('cleaning up messages')
         for channel_id, age_in_seconds in self.dissapearing_channels.items():
             channel = self.bot.get_channel(channel_id)
 
             if not channel:
                 continue
 
-            match = re.match('^max_age=(?P<max_age>[0-9]+)', channel.topic, re.IGNORECASE)
+            match = re.match(
+                '^max_age=(?P<max_age>[0-9]+)', channel.topic, re.IGNORECASE
+            )
             if match:
                 max_age = match.groups()[0]
             else:

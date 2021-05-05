@@ -11,16 +11,18 @@ from northisbot.config import configure_logging
 logger = getLogger(__name__)
 configure_logging()
 
+
 def bot_main():
-    logger.info("starting bot")
+    logger.info('starting bot')
 
     root = Path(__file__).parent
-    bot = NorthIsBot("!")
+    bot = NorthIsBot('!')
 
-    bot.discover_extensions(root / "northisbot")
-    bot.run(os.environ["DISCORD_NORTHISBOT_TOKEN"])
+    bot.discover_extensions(root / 'northisbot')
+    bot.run(os.environ['DISCORD_NORTHISBOT_TOKEN'])
 
-    logger.info("ending bot")
+    logger.info('ending bot')
+
 
 if __name__ == '__main__':
     bot_main()
