@@ -33,7 +33,12 @@ docker-build: Dockerfile
 	docker build -t $(NAME):$(TAG) -f $< .
 
 run: docker-build
-	docker run -e DISCORD_NORTHISBOT_TOKEN=${DISCORD_NORTHISBOT_TOKEN} $(NAME):$(TAG)
+	docker run \
+		-e DISCORD_NORTHISBOT_TOKEN=${DISCORD_NORTHISBOT_TOKEN} \
+		-e NORTHISBOT__INCOMING_WEB_HOOKS__HOST=0.0.0.0 \
+		-e NORTHISBOT__INCOMING_WEB_HOOKS__PORT=8080 \
+		-p 8080:80 \
+		$(NAME):$(TAG)
 
 dev: requirements-dev.txt
 test: requirements-test.txt

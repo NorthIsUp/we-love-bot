@@ -45,8 +45,11 @@ class DissapearingMessages(commands.Cog):
                 max_age = timedelta(seconds=age_in_seconds)
 
             async for message in channel.history():
-                if datetime.utcnow() - message.created_at > max_age:
-                    logger.info(f'cleaning {message.id}')
-                    await message.delete()
+                try:
+                    if datetime.utcnow() - message.created_at > max_age:
+                        logger.info(f'cleaning {message.id}')
+                        await message.delete()
+                except Exception:
+                    pass
 
             logger.info('done cleaning')

@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import pkgutil
+from abc import ABC, ABCMeta
 from logging import Logger, getLogger
 from pathlib import Path
 from types import ModuleType
@@ -33,10 +34,15 @@ class NorthIsBot(commands.Bot):
     def discover_extension(self, name: str, mod: ModuleType) -> None:
         """attempt to load an extension from a module"""
         loadable = getattr(mod, name, None)
-        if name.startswith("_") or isinstance(loadable, (ModuleType, Logger)):
+        if (
+            name.startswith("_")
+            or isinstance(loadable, (ModuleType, Logger))
+            # ignore modules imported from elsewhere
+            or (hasattr(loadable, '__module__') and loadable.__module__ != mod.__name__)
+        ):
             pass
         elif isinstance(loadable, commands.Cog):
-            logger.info(f"- discovred Cog instance {loadable.__name__}@{repr(loadable)}")
+            logger.info(f"- discovred Cog instance {loadable.__name__}.@{repr(loadable)}")
             self.add_cog(loadable)
         elif isinstance(loadable, type) and issubclass(loadable, commands.Cog):
             logger.info(f"- discovred Cog class {loadable.__name__}@{repr(loadable)}")
