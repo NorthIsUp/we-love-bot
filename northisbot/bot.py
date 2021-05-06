@@ -42,9 +42,7 @@ class NorthIsBot(commands.Bot):
         ):
             pass
         elif isinstance(loadable, commands.Cog):
-            logger.info(
-                f'- discovred Cog instance {loadable.__name__}.@{repr(loadable)}'
-            )
+            logger.info(f'- discovred Cog instance {loadable.__name__}.@{repr(loadable)}')
             self.add_cog(loadable)
         elif isinstance(loadable, type) and issubclass(loadable, commands.Cog):
             logger.info(f'- discovred Cog class {loadable.__name__}@{repr(loadable)}')
@@ -55,9 +53,7 @@ class NorthIsBot(commands.Bot):
         else:
             logger.debug(f'skipping {name}')
 
-    async def send_message(
-        self, message: discord.Message, response: str, img_url: str = None
-    ):
+    async def send_message(self, message: discord.Message, response: str, img_url: str = None):
         for small_response in (r.strip() for r in response.split('\n\n') if r.strip()):
             await message.channel.trigger_typing()
             await message.channel.send(small_response)

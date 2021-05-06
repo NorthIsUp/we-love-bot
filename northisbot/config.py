@@ -9,15 +9,9 @@ _info_config = {'handlers': ['console'], 'level': logging.INFO, 'propagate': Fal
 def configure_logging():
     logging_config = {
         'version': 1,
-        'formatters': {
-            'f': {'format': '%(asctime)s %(levelname)-8s %(name)-20s -- %(message)s'}
-        },
+        'formatters': {'f': {'format': '%(asctime)s %(levelname)-8s %(name)-20s -- %(message)s'}},
         'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'formatter': 'f',
-                'level': logging.DEBUG,
-            }
+            'console': {'class': 'logging.StreamHandler', 'formatter': 'f', 'level': logging.DEBUG,}
         },
         'loggers': {
             '': {'handlers': ['console'], 'level': logging.DEBUG, 'propagate': True},
@@ -27,21 +21,9 @@ def configure_logging():
             'aiohttp.server': _info_config,
             'aiohttp.web': _info_config,
             'aiohttp.websocket': _info_config,
-            '__main__': {
-                'handlers': ['console'],
-                'level': logging.INFO,
-                'propagate': False,
-            },
-            'discord': {
-                'handlers': ['console'],
-                'level': logging.INFO,
-                'propagate': False,
-            },
-            'northisbot': {
-                'handlers': ['console'],
-                'level': logging.DEBUG,
-                'propagate': False,
-            },
+            '__main__': {'handlers': ['console'], 'level': logging.INFO, 'propagate': False,},
+            'discord': {'handlers': ['console'], 'level': logging.INFO, 'propagate': False,},
+            'northisbot': {'handlers': ['console'], 'level': logging.DEBUG, 'propagate': False,},
             'northisbot.config': {
                 'handlers': ['console'],
                 'level': logging.INFO,

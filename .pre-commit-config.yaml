@@ -11,7 +11,7 @@ repos:
   - id: black
     language: python
     language_version: python3.9
-    entry: python -m black
+    entry: python -m black --line-length=100
     types:
     - file
     files: ^.*.py$

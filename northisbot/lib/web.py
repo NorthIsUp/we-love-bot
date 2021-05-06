@@ -13,9 +13,7 @@ from northisbot.lib.cog import Cog
 from northisbot.lib.config import AppConfig
 
 logger = logging.getLogger(__name__)
-MethodsT = Literal[
-    'CONNECT', 'HEAD', 'GET', 'DELETE', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'TRACE'
-]
+MethodsT = Literal['CONNECT', 'HEAD', 'GET', 'DELETE', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'TRACE']
 
 _NO_SLASH_ERR = "may not contain a '/'"
 
@@ -29,9 +27,7 @@ class WebCog(Cog):
 
     def __post_init__(self):
         if self.url_root is None:
-            raise AttributeError(
-                f"{self.__class__.__name__} is missing 'root' path value"
-            )
+            raise AttributeError(f"{self.__class__.__name__} is missing 'root' path value")
 
         self.url_root = self.url_root.strip('/')
         if '/' in self.url_root:
@@ -58,9 +54,7 @@ class WebCog(Cog):
 
         for handler in _route_attrs():
             path = f'/{self.url_root}/{handler.path}/'
-            logger.debug(
-                f'[{self.__class__.__name__}] adding route: {handler.method} {path}'
-            )
+            logger.debug(f'[{self.__class__.__name__}] adding route: {handler.method} {path}')
             adder = getattr(app.router, f'add_{handler.method.lower()}')
             adder(path, handler)
 
@@ -86,7 +80,7 @@ class WebCog(Cog):
 
         return decorator
 
-    @Cog.listener('on_ready')
+    @Cog.on_ready_create_task
     async def start(self):
         runner = web.AppRunner(self.web_app)
 
@@ -94,7 +88,7 @@ class WebCog(Cog):
         self.site = web.TCPSite(runner, self.host, self.port)
 
         logger.info('starting site')
-        self.bot.loop.create_task(self.site.start())
+        await self.site.start()
 
-    def __unload(self):
+    def cog_unload(self):
         asyncio.ensure_future(self.site.stop())
