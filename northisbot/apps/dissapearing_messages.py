@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from logging import getLogger
 from typing import ClassVar, Dict
 
-from discord.ext import commands
+from northisbot.lib.cog import Cog
 
 ChannelIdT = int
 AgeT = int
@@ -13,17 +13,14 @@ logger = getLogger(__name__)
 _one_hour = 3600
 
 
-class DissapearingMessages(commands.Cog):
+class DissapearingMessages(Cog):
     dissapearing_channels: ClassVar[Dict[ChannelIdT, AgeT]] = {
         799723513014386708: 6 * _one_hour,
     }
 
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
-        logger.info('starting clean loop')
-        self.bot.loop.create_task(self.periodic_cleanup())
-
+    @Cog.on_ready_create_task
     async def periodic_cleanup(self):
+        logger.info('starting clean loop')
         while True:
             try:
                 await self.cleanup()

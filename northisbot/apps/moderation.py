@@ -3,11 +3,10 @@ import typing
 import discord
 from discord.ext import commands
 
+from northisbot.lib.cog import Cog
 
-class Moderation(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
 
+class Moderation(Cog):
     @commands.command()
     async def ban(
         ctx,
