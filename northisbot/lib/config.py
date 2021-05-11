@@ -5,26 +5,32 @@ from asyncio.log import logger
 from dataclasses import dataclass
 from functools import cached_property
 from os import environ
-from typing import Type
+from typing import Type, Union
 
 logger = logging.getLogger(__name__)
 
-_MISSING = object()
+
+class _MissingT:
+    """tombstone for missing values"""
+
+
+_MISSING = _MissingT()
 
 
 class Config(ABC):
-    def get(self, key: str, default: str = _MISSING) -> str:
+    def get(self, key: str, default: Union[str, _MissingT] = _MISSING) -> str:
         try:
             key = self._key(key)
             value = self[key]
         except KeyError:
-            if default is not _MISSING:
+            if not isinstance(default, _MissingT):
                 logger.debug(f'config default: {key}')
                 return default
             logger.debug(f'config miss: {key}')
             raise
         else:
             logger.debug(f'config hit: {key}')
+            return value
 
     def _key(self, key: str) -> str:
         return key
