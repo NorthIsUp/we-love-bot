@@ -5,39 +5,37 @@ from asyncio.log import logger
 from dataclasses import dataclass
 from functools import cached_property
 from os import environ
-from typing import Type, Union
+from typing import Optional, Type
 
 logger = logging.getLogger(__name__)
 
 
-class _MissingT:
-    """tombstone for missing values"""
-
-
-_MISSING = _MissingT()
-
-
 class Config(ABC):
-    def get(self, key: str, default: Union[str, _MissingT] = _MISSING) -> str:
+    def __getitem__(self, key: str) -> str:
+        key = self._key(key)
         try:
-            key = self._key(key)
-            value = self[key]
+            value = self._getitem(self._key(key))
         except KeyError:
-            if not isinstance(default, _MissingT):
-                logger.debug(f'config default: {key}')
-                return default
             logger.debug(f'config miss: {key}')
             raise
         else:
             logger.debug(f'config hit: {key}')
             return value
 
+    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        try:
+            key = self._key(key)
+            return self[key]
+        except KeyError:
+            logger.debug(f'config default: {key}')
+            return default
+
     def _key(self, key: str) -> str:
         return key
 
     @abstractmethod
-    def __getitem__(self, key: str) -> str:
-        pass
+    def _getitem(self, key: str) -> str:
+        """called by __getitem__"""
 
 
 @dataclass
@@ -60,7 +58,7 @@ class EnvConfig(Config):
     def _key(self, key: str) -> str:
         return self._join_prefix(self.prefix, key)
 
-    def __getitem__(self, key: str) -> str:
+    def _getitem(self, key: str) -> str:
         return environ[key]
 
 
@@ -90,5 +88,5 @@ class GistConfig(Config):
         gh_gist = Simplegist(username='USERNAME', api_token='API_TOKEN')
         self._gist = gh_gist[self.gist_id]
 
-    def __getitem__(self, key: str) -> str:
+    def _getitem(self, key: str) -> str:
         return self._gist[key]

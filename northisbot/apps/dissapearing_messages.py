@@ -9,31 +9,43 @@ from northisbot.lib.cog import Cog
 ChannelIdT = int
 AgeT = int
 
-logger = getLogger(__name__)
 _one_hour = 3600
 _default_time = _one_hour * 24
 
 
 class DissapearingMessages(Cog):
-    dissapearing_channels: ClassVar[Dict[ChannelIdT, AgeT]] = {
-        799723513014386708: _default_time,
-    }
-
     period: ClassVar[int] = 60
+
+    @property
+    def dissapearing_channels(self) -> Dict[ChannelIdT, AgeT]:
+        """
+        expects a list of <guild_id>:<seconds>,...
+        """
+        dissapearing_channels = {}
+        channels_raw = self.config.get('CHANNELS') or ''
+        for channel_raw in channels_raw.split(','):
+            if channel_raw.count(':') == 1:
+                channel, time = channel_raw.strip().split(':')
+                if channel.isdigit() and (time == 'default' or time.isdigit()):
+                    dissapearing_channels[int(channel)] = (
+                        _default_time if time == 'default' else int(time)
+                    )
+
+        return dissapearing_channels
 
     @Cog.on_ready_create_task
     async def periodic_cleanup(self):
-        logger.info('starting clean loop')
+        self.info('starting clean loop')
         while True:
             try:
                 await self.cleanup()
             except Exception as e:
-                logger.exception(e)
+                self.exception(e)
 
             await asyncio.sleep(self.period)
 
     async def cleanup(self):
-        logger.info('cleaning up messages')
+        self.info('cleaning up messages')
         for channel_id in self.dissapearing_channels:
             channel = self.bot.get_channel(channel_id)
 
@@ -47,9 +59,9 @@ class DissapearingMessages(Cog):
             async for message in channel.history():
                 try:
                     if datetime.utcnow() - message.created_at > max_age:
-                        logger.info(f'cleaning {message.id}')
+                        self.info(f'cleaning {message.id}')
                         await message.delete()
                 except Exception:
                     pass
 
-            logger.info('done cleaning')
+            self.info('done cleaning')
