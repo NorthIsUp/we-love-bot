@@ -1,6 +1,6 @@
 import discord
 
-from northisbot.lib.cog import Cog, Context
+from northisbot.prelude import *
 
 
 class Greetings(Cog):
