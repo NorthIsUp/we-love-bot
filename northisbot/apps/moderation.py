@@ -7,7 +7,7 @@ from northisbot.lib.cog import Cog
 
 
 class Moderation(Cog):
-    @commands.command()
+    @Cog.command()
     async def ban(
         ctx,
         members: commands.Greedy[discord.Member],

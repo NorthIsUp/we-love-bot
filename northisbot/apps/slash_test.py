@@ -1,13 +1,26 @@
 import discord
-from discord.ext import commands
-from discord_slash import SlashContext, cog_ext
+
+from northisbot.prelude import *
 
 
-class Slash(commands.Cog):
+class Slash(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @cog_ext.cog_slash(name='test')
+    @Cog.slash(name='test')
     async def _test(self, ctx: SlashContext):
         embed = discord.Embed(title='embed test')
         await ctx.send(content='test', embeds=[embed])
+
+    @Cog.slash(name='test2')
+    async def _test(self, ctx: SlashContext):
+        embed = discord.Embed(title='embed test')
+        await ctx.send(content='test2', embeds=[embed])
+
+    @Cog.slash_subcommand(base='test-group', name='echo')
+    async def ping(self, ctx: SlashContext, text: str) -> None:
+        await ctx.send(content=text)
+
+    @Cog.command()
+    async def test3(self, ctx, *, member: discord.Member = None):
+        await ctx.send('hello there')

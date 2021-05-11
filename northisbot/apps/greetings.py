@@ -1,7 +1,6 @@
 import discord
-from discord.ext import commands
 
-from northisbot.lib.cog import Cog
+from northisbot.lib.cog import Cog, Context
 
 
 class Greetings(Cog):
@@ -15,8 +14,8 @@ class Greetings(Cog):
         if channel is not None:
             await channel.send('Welcome {0.mention}.'.format(member))
 
-    @commands.command()
-    async def hello(self, ctx, *, member: discord.Member = None):
+    @Cog.command()
+    async def hello(self, ctx: Context, *, member: discord.Member = None):
         """Says hello"""
         member = member or ctx.author
         if self._last_member is None or self._last_member.id != member.id:
