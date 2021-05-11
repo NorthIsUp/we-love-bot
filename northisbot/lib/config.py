@@ -3,6 +3,7 @@ import re
 from abc import ABC, abstractmethod
 from asyncio.log import logger
 from dataclasses import dataclass
+from functools import cached_property
 from os import environ
 from typing import Type
 
@@ -34,19 +35,43 @@ class Config(ABC):
 
 
 @dataclass
-class AppConfig(Config):
-    bot: Type
-    ext: Type
+class EnvConfig(Config):
+    def __post_init__(self):
+        self.prefix = self._snake_case(self.prefix)
 
-    def __post_init__(self) -> None:
-        env_prefix = re.sub('(?!^)([A-Z]+)', r'_\1', self.ext.__name__).upper()
-        self.prefix = f'{self.bot.__name__.upper()}__{env_prefix}'
+    @cached_property
+    def prefix(self) -> str:
+        raise NotImplementedError('do this')
+
+    @staticmethod
+    def _snake_case(s: str) -> str:
+        return re.sub('(?!^)([A-Z]+)', r'_\1', s).upper()
+
+    @staticmethod
+    def _join_prefix(*s: str) -> str:
+        return ('__'.join(s)).upper()
 
     def _key(self, key: str) -> str:
-        return f'{self.prefix}__{key.upper()}'
+        return self._join_prefix(self.prefix, key)
 
     def __getitem__(self, key: str) -> str:
         return environ[key]
+
+
+@dataclass
+class BotConfig(EnvConfig):
+    bot: Type
+
+    def __post_init__(self) -> None:
+        self.prefix = self.bot.__name__.upper()
+
+
+@dataclass
+class AppConfig(BotConfig):
+    ext: Type
+
+    def __post_init__(self) -> None:
+        self.prefix = self._join_prefix(self.bot.__name__, self._snake_case(self.ext.__name__))
 
 
 @dataclass

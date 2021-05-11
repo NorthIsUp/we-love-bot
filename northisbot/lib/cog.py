@@ -1,15 +1,14 @@
-import asyncio
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import wraps
 
 from discord.ext import commands
 
-from northisbot.bot import NorthIsBot
-
 
 @dataclass
 class Cog(commands.Cog):
-    bot: NorthIsBot
+    bot: commands.Bot
 
     @classmethod
     def on_ready(cls, func):

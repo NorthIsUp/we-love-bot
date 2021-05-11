@@ -9,11 +9,22 @@ from typing import Union
 
 import discord
 from discord.ext import commands
+from discord_slash import SlashCommand
+
+from northisbot.lib.config import BotConfig
 
 logger = getLogger(__name__)
 
 
 class NorthIsBot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.application_id = BotConfig(self.__class__).get('APPLICATION_ID', None)
+        self.slash = SlashCommand(
+            self, application_id=self.application_id, sync_commands=True, override_type=True
+        )
+
     async def on_ready(self) -> None:
         logger.debug('Logged on as {0}!'.format(self.user))
 
@@ -51,7 +62,8 @@ class NorthIsBot(commands.Bot):
             logger.info(f'- discovred Command {loadable}@{repr(loadable)}')
             self.add_command(loadable)
         else:
-            logger.debug(f'skipping {name}')
+            logger.debug(f'- falling back to `load_extension({name})`')
+            self.load_extension(name)
 
     async def send_message(self, message: discord.Message, response: str, img_url: str = None):
         for small_response in (r.strip() for r in response.split('\n\n') if r.strip()):
