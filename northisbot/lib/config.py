@@ -14,7 +14,7 @@ class Config(ABC):
     def __getitem__(self, key: str) -> str:
         key = self._key(key)
         try:
-            value = self._getitem(self._key(key))
+            value = self._getitem(key)
         except KeyError:
             logger.debug(f'config miss: {key}')
             raise
@@ -56,7 +56,7 @@ class EnvConfig(Config):
         return ('__'.join(s)).upper()
 
     def _key(self, key: str) -> str:
-        return self._join_prefix(self.prefix, key)
+        return key if key.startswith(f'{self.prefix}__') else self._join_prefix(self.prefix, key)
 
     def _getitem(self, key: str) -> str:
         return environ[key]
