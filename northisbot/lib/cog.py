@@ -8,21 +8,12 @@ from typing import List, Optional, Type
 from discord.ext import commands
 from discord_slash import cog_ext
 
+from northisbot.lib.config import AppConfig, Config
+
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class Cog(commands.Cog):
-    bot: commands.Bot
-
-    @cached_property
-    def name(self) -> str:
-        return self.__class__.__name__
-
-    @cached_property
-    def logger(self) -> logging.Logger:
-        return logging.getLogger(self.__class__.__module__)
-
+class BaseCog(commands.Cog):
     @classmethod
     def on_ready(cls, func):
         return cls.listener('on_ready')(func)
@@ -117,14 +108,31 @@ class Cog(commands.Cog):
 
         return decorator
 
-    def debug(self, *args, **kwargs) -> None:
-        self.logger.debug(*args, **kwargs)
 
-    def info(self, *args, **kwargs) -> None:
-        self.logger.info(*args, **kwargs)
+@dataclass
+class Cog(BaseCog):
+    bot: commands.Bot
 
-    def warning(self, *args, **kwargs) -> None:
-        self.logger.warning(*args, **kwargs)
+    @cached_property
+    def name(self) -> str:
+        return self.__class__.__name__
 
-    def error(self, *args, **kwargs) -> None:
-        self.logger.error(*args, **kwargs)
+    @cached_property
+    def config(self) -> Config:
+        return AppConfig(self.bot.__class__, self.__class__)
+
+    @cached_property
+    def logger(self) -> logging.Logger:
+        return logging.getLogger(self.__class__.__module__)
+
+    def debug(self, msg: str, *args, **kwargs) -> None:
+        self.logger.debug(msg, *args, **kwargs)
+
+    def info(self, msg: str, *args, **kwargs) -> None:
+        self.logger.info(msg, *args, **kwargs)
+
+    def warning(self, msg: str, *args, **kwargs) -> None:
+        self.logger.warning(msg, *args, **kwargs)
+
+    def error(self, msg: str, *args, **kwargs) -> None:
+        self.logger.error(msg, *args, **kwargs)
