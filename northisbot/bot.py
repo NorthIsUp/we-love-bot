@@ -22,7 +22,7 @@ class NorthIsBot(commands.Bot):
 
         self.application_id = BotConfig(self.__class__).get('APPLICATION_ID', None)
         self.slash = SlashCommand(
-            self, application_id=self.application_id, sync_commands=True, override_type=True
+            self, application_id=self.application_id, sync_commands=True, override_type=True,
         )
 
     async def on_ready(self) -> None:

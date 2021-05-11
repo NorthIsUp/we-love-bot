@@ -29,7 +29,11 @@ class BaseCog(commands.Cog):
 
     @classmethod
     def command(
-        cls, *, name: Optional[str] = None, cmd_cls: Optional[Type[Command]] = None, **attrs
+        cls,
+        *,
+        name: Optional[str] = None,
+        cmd_cls: Optional[Type[commands.Command]] = None,
+        **attrs,
     ):
         def decorator(func):
             @commands.command(name=name, cls=cmd_cls, **attrs)
