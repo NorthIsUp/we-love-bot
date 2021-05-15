@@ -10,7 +10,6 @@ from aiohttp import web, web_middlewares
 from discord.ext import commands
 
 from northisbot.lib.cog import Cog
-from northisbot.lib.config import AppConfig
 
 logger = logging.getLogger(__name__)
 MethodsT = Literal['CONNECT', 'HEAD', 'GET', 'DELETE', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'TRACE']
@@ -35,10 +34,6 @@ class WebCog(Cog):
 
         self.host = self.config.get('HOST', '0.0.0.0')
         self.port = self.config.get('PORT', 8080)
-
-    @property
-    def config(self) -> AppConfig:
-        return AppConfig(self.bot.__class__, self.__class__)
 
     @cached_property
     def web_app(self) -> web.Application:

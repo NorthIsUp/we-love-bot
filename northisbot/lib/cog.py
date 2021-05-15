@@ -8,7 +8,7 @@ from typing import List, Optional, Type
 from discord.ext import commands
 from discord_slash import cog_ext
 
-from northisbot.lib.config import AppConfig, Config
+from northisbot.lib.config import CogConfig, Config
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ class Cog(BaseCog):
 
     @cached_property
     def config(self) -> Config:
-        return AppConfig(self.bot.__class__, self.__class__)
+        return CogConfig(self.bot, self.__class__)
 
     @cached_property
     def logger(self) -> logging.Logger:

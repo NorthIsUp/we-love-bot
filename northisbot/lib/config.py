@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import logging
 import re
 from abc import ABC, abstractmethod
 from asyncio.log import logger
 from dataclasses import dataclass
 from functools import cached_property
+from logging.config import dictConfig
 from os import environ
-from typing import Optional, Type
+from typing import TYPE_CHECKING, Optional, Type, Union
+
+if TYPE_CHECKING:
+    from .bot import NorthIsBot
 
 logger = logging.getLogger(__name__)
 
@@ -64,18 +70,23 @@ class EnvConfig(Config):
 
 @dataclass
 class BotConfig(EnvConfig):
-    bot: Type
+    bot: Union[Type[NorthIsBot], NorthIsBot]
 
     def __post_init__(self) -> None:
-        self.prefix = self.bot.__name__.upper()
+        """try for bot.config_prefix first, otherwise the class name"""
+        if prefix := getattr(self.bot, 'config_prefix', None):
+            self.prefix = prefix.upper()
+        elif isinstance(self.bot, type):
+            self.prefix = self.bot.__name__.upper()
 
 
 @dataclass
-class AppConfig(BotConfig):
+class CogConfig(BotConfig):
     ext: Type
 
     def __post_init__(self) -> None:
-        self.prefix = self._join_prefix(self.bot.__name__, self._snake_case(self.ext.__name__))
+        super().__post_init__()
+        self.prefix = self._join_prefix(self.prefix, self._snake_case(self.ext.__name__))
 
 
 @dataclass
@@ -90,3 +101,36 @@ class GistConfig(Config):
 
     def _getitem(self, key: str) -> str:
         return self._gist[key]
+
+
+_info_config = {'handlers': ['console'], 'level': logging.INFO, 'propagate': False}
+
+
+def configure_logging():
+    logging_config = {
+        'version': 1,
+        'formatters': {'f': {'format': '%(asctime)s %(levelname)-8s %(name)-20s -- %(message)s'}},
+        'handlers': {
+            'console': {'class': 'logging.StreamHandler', 'formatter': 'f', 'level': logging.DEBUG,}
+        },
+        'loggers': {
+            '': {'handlers': ['console'], 'level': logging.DEBUG, 'propagate': True},
+            'aiohttp.access': _info_config,
+            'aiohttp.client': _info_config,
+            'aiohttp.internal': _info_config,
+            'aiohttp.server': _info_config,
+            'aiohttp.web': _info_config,
+            'aiohttp.websocket': _info_config,
+            '__main__': {'handlers': ['console'], 'level': logging.INFO, 'propagate': False,},
+            'discord': {'handlers': ['console'], 'level': logging.INFO, 'propagate': False,},
+            'northisbot': {'handlers': ['console'], 'level': logging.DEBUG, 'propagate': False,},
+            'northisbot.config': {
+                'handlers': ['console'],
+                'level': logging.INFO,
+                'propagate': False,
+            },
+        },
+        'remove_existing_loggers': True,
+    }
+
+    dictConfig(logging_config)
