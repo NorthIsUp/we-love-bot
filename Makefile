@@ -1,7 +1,7 @@
 # collect all *.in files
 REQ_IN := $(wildcard *.in)
 DOCKERFILE := $(wildcard Dockerfile)
-NAME = WELOVEBOT
+NAME = welovebot
 TAG = latest
 
 # generate *.txt file names from *.in name
