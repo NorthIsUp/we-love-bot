@@ -64,8 +64,8 @@ class KeyT(str):
 @dataclass
 class EnvConfig(Config):
 
-    default_prefix: ClassVar[str] = 'EZBOT'
-    default_envvar: ClassVar[str] = 'EZBOT_CONFIG_PREFIX'
+    default_prefix: ClassVar[str] = 'WELOVEBOT'
+    default_envvar: ClassVar[str] = 'WELOVEBOT_CONFIG_PREFIX'
 
     def __init__(self, prefix: Optional[str] = None) -> None:
         self.set_prefix(prefix)
