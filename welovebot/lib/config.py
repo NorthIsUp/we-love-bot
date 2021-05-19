@@ -3,13 +3,11 @@ from __future__ import annotations
 import logging
 import re
 from abc import ABC, abstractmethod
-from asyncio.log import logger
 from dataclasses import dataclass
-from distutils.command.config import config
 from functools import cached_property
 from logging.config import dictConfig
 from os import environ
-from typing import TYPE_CHECKING, ClassVar, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, ChainMap, ClassVar, Optional, Sequence, Type, Union
 
 if TYPE_CHECKING:
     from .bot import Bot
@@ -65,16 +63,12 @@ class KeyT(str):
 
 @dataclass
 class EnvConfig(Config):
-    prefix: KeyT
 
     default_prefix: ClassVar[str] = 'EZBOT'
     default_envvar: ClassVar[str] = 'EZBOT_CONFIG_PREFIX'
 
-    def __init__(self, prefix: Optional[str] = None, **kwargs) -> None:
-        if not prefix:
-            prefix = environ.get(self.default_envvar, self.default_prefix)
-
-        self.prefix = KeyT(self._snake_case(prefix))
+    def __init__(self, prefix: Optional[str] = None) -> None:
+        self.set_prefix(prefix)
 
     @staticmethod
     def _snake_case(s: str) -> str:
@@ -85,6 +79,13 @@ class EnvConfig(Config):
     @staticmethod
     def _join_prefix(*s: str) -> KeyT:
         return KeyT(('__'.join(s)).upper())
+
+    @cached_property
+    def prefix(self):
+        raise NotImplementedError('provide a prefix')
+
+    def set_prefix(self, prefix: Optional[str]) -> None:
+        self.prefix = prefix or environ.get(self.default_envvar, self.default_prefix)
 
     def _key(self, key: str) -> KeyT:
         if isinstance(key, KeyT):
@@ -100,13 +101,8 @@ class BotConfig(EnvConfig):
     bot: Union[Type[Bot], Bot]
 
     def __post_init__(self) -> None:
-        """try for bot.config_prefix first, otherwise the class name"""
-        if prefix := getattr(self.bot, 'config_prefix', None):
-            self.prefix = KeyT(prefix.upper())
-        elif isinstance(self.bot, type) and issubclass(self.bot, Bot):
-            self.prefix = KeyT(self.bot.__name__.upper())
-        elif isinstance(self.bot, Bot):
-            self.prefix = KeyT(self.bot.__class__.__name__)
+        """try for bot.config_prefix first, otherwise the default prefix"""
+        self.set_prefix(getattr(self.bot, 'config_prefix', None))
 
 
 @dataclass
@@ -132,7 +128,9 @@ class GistConfig(Config):
         return self._gist[key]
 
 
-_info_config = {'handlers': ['console'], 'level': logging.INFO, 'propagate': False}
+_base_config = {'handlers': ['console'], 'level': logging.ERROR, 'propagate': False}
+_info_config = ChainMap({'level': logging.INFO}, _base_config)
+_debug_config = ChainMap({'level': logging.DEBUG}, _base_config)
 
 
 def configure_logging():
@@ -150,14 +148,9 @@ def configure_logging():
             'aiohttp.server': _info_config,
             'aiohttp.web': _info_config,
             'aiohttp.websocket': _info_config,
-            '__main__': {'handlers': ['console'], 'level': logging.INFO, 'propagate': False,},
-            'discord': {'handlers': ['console'], 'level': logging.INFO, 'propagate': False,},
-            'welovebot': {'handlers': ['console'], 'level': logging.DEBUG, 'propagate': False,},
-            'welovebot.config': {
-                'handlers': ['console'],
-                'level': logging.INFO,
-                'propagate': False,
-            },
+            '__main__': _info_config,
+            'discord': _info_config,
+            'welovebot': _debug_config,
         },
         'remove_existing_loggers': True,
     }
