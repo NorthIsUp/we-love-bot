@@ -4,12 +4,10 @@ import importlib
 import pkgutil
 from dataclasses import dataclass
 from functools import cached_property
-
 from logging import Logger, getLogger
 from pathlib import Path
 from types import ModuleType
-from typing import (TYPE_CHECKING,
- Optional, Sequence, Union)
+from typing import TYPE_CHECKING, Optional, Sequence, Union
 
 import discord
 from discord.ext import commands
