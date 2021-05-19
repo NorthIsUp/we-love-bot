@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from logging import getLogger
 from typing import ClassVar, Dict
 
-from northisbot.lib.cog import Cog
+from welovebot.lib.cog import Cog
 
 ChannelIdT = int
 AgeT = int

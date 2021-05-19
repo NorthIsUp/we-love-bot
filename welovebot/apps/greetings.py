@@ -1,6 +1,6 @@
 import discord
 
-from northisbot.prelude import *
+from welovebot.prelude import *
 
 
 class Greetings(Cog):

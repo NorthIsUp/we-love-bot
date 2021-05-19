@@ -1,7 +1,7 @@
 # collect all *.in files
 REQ_IN := $(wildcard *.in)
 DOCKERFILE := $(wildcard Dockerfile)
-NAME = northisbot
+NAME = WELOVEBOT
 TAG = latest
 
 # generate *.txt file names from *.in name
@@ -34,9 +34,10 @@ docker-build: Dockerfile
 
 run: docker-build
 	docker run \
-		-e DISCORD_NORTHISBOT_TOKEN=${DISCORD_NORTHISBOT_TOKEN} \
-		-e NORTHISBOT__INCOMING_WEB_HOOKS__HOST=0.0.0.0 \
-		-e NORTHISBOT__INCOMING_WEB_HOOKS__PORT=8080 \
+		-e WELOVEBOT__CONFIG_PREFIX=WELOVEBOT \
+		-e WELOVEBOT__DISCORD_TOKEN=${WELOVEBOT__DISCORD_TOKEN} \
+		-e WELOVEBOT__INCOMING_WEB_HOOKS__HOST=0.0.0.0 \
+		-e WELOVEBOT__INCOMING_WEB_HOOKS__PORT=8080 \
 		-p 8080:80 \
 		$(NAME):$(TAG)
 

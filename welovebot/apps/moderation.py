@@ -3,7 +3,7 @@ import typing
 import discord
 from discord.ext import commands
 
-from northisbot.lib.cog import Cog
+from welovebot.lib.cog import Cog
 
 
 class Moderation(Cog):

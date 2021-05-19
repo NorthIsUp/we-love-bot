@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
+from dataclasses import dataclass
 from functools import cached_property
 from logging import Logger, getLogger
 from pathlib import Path
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
+@dataclass
 class Bot(commands.Bot):
     def __init__(
         self,
@@ -28,7 +30,7 @@ class Bot(commands.Bot):
     ):
         super().__init__(*args, **kwargs)
 
-        self.config_prefix = config_prefix or self.__class__.__name__
+        self.config_prefix = config_prefix
         self.application_id = self.config.get('APPLICATION_ID', application_id)
 
     @cached_property

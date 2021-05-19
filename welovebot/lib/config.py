@@ -9,7 +9,7 @@ from distutils.command.config import config
 from functools import cached_property
 from logging.config import dictConfig
 from os import environ
-from typing import TYPE_CHECKING, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Sequence, Type, Union
 
 if TYPE_CHECKING:
     from .bot import Bot
@@ -59,25 +59,37 @@ class ChainConfig(Config):
         assert False, 'this should not be reached'
 
 
+class KeyT(str):
+    pass
+
+
 @dataclass
 class EnvConfig(Config):
-    def __post_init__(self):
-        self.prefix = self._snake_case(self.prefix)
+    prefix: KeyT
 
-    @cached_property
-    def prefix(self) -> str:
-        raise NotImplementedError('prefix must be overridden')
+    default_prefix: ClassVar[str] = 'EZBOT'
+    default_envvar: ClassVar[str] = 'EZBOT_CONFIG_PREFIX'
+
+    def __init__(self, prefix: Optional[str] = None, **kwargs) -> None:
+        if not prefix:
+            prefix = environ.get(self.default_envvar, self.default_prefix)
+
+        self.prefix = KeyT(self._snake_case(prefix))
 
     @staticmethod
     def _snake_case(s: str) -> str:
+        if isinstance(s, KeyT):
+            return s
         return re.sub('(?!^)([A-Z]+)', r'_\1', s).upper()
 
     @staticmethod
-    def _join_prefix(*s: str) -> str:
-        return ('__'.join(s)).upper()
+    def _join_prefix(*s: str) -> KeyT:
+        return KeyT(('__'.join(s)).upper())
 
-    def _key(self, key: str) -> str:
-        return key if key.startswith(f'{self.prefix}__') else self._join_prefix(self.prefix, key)
+    def _key(self, key: str) -> KeyT:
+        if isinstance(key, KeyT):
+            return key
+        return self._join_prefix(self.prefix, key)
 
     def _getitem(self, key: str) -> str:
         return environ[key]
@@ -90,9 +102,11 @@ class BotConfig(EnvConfig):
     def __post_init__(self) -> None:
         """try for bot.config_prefix first, otherwise the class name"""
         if prefix := getattr(self.bot, 'config_prefix', None):
-            self.prefix = prefix.upper()
-        elif isinstance(self.bot, type):
-            self.prefix = self.bot.__name__.upper()
+            self.prefix = KeyT(prefix.upper())
+        elif isinstance(self.bot, type) and issubclass(self.bot, Bot):
+            self.prefix = KeyT(self.bot.__name__.upper())
+        elif isinstance(self.bot, Bot):
+            self.prefix = KeyT(self.bot.__class__.__name__)
 
 
 @dataclass
@@ -138,8 +152,8 @@ def configure_logging():
             'aiohttp.websocket': _info_config,
             '__main__': {'handlers': ['console'], 'level': logging.INFO, 'propagate': False,},
             'discord': {'handlers': ['console'], 'level': logging.INFO, 'propagate': False,},
-            'northisbot': {'handlers': ['console'], 'level': logging.DEBUG, 'propagate': False,},
-            'northisbot.config': {
+            'welovebot': {'handlers': ['console'], 'level': logging.DEBUG, 'propagate': False,},
+            'welovebot.config': {
                 'handlers': ['console'],
                 'level': logging.INFO,
                 'propagate': False,

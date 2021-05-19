@@ -2,7 +2,7 @@ import logging
 
 from discord_slash import SlashContext
 
-from northisbot.lib.cog import Cog
+from welovebot.lib.cog import Cog
 
 logger = logging.getLogger(__name__)
 

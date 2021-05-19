@@ -1,6 +1,6 @@
 from aiohttp.web import Request, Response
 
-from northisbot.lib.web import WebCog
+from welovebot.lib.web import WebCog
 
 
 class IncomingWebHooks(WebCog):
