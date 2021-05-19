@@ -2,7 +2,7 @@
 set -x
 case "$@" in
 run)
-    python3 app.py
+    python3 northisbot
     ;;
 *)
     echo "'$@' is not a valid command"
