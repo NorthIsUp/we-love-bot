@@ -3,12 +3,16 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from functools import cached_property, wraps
-from typing import List, Optional, Type
+from typing import TYPE_CHECKING, List, Optional, Type
 
 from discord.ext import commands
 from discord_slash import cog_ext
+from redis import StrictRedis
 
-from northisbot.lib.config import CogConfig, Config
+from .config import BotConfig, ChainConfig, CogConfig, Config
+
+if TYPE_CHECKING:
+    from .bot import Bot
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +119,7 @@ class BaseCog(commands.Cog):
 
 @dataclass
 class Cog(BaseCog):
-    bot: commands.Bot
+    bot: Bot
 
     @cached_property
     def name(self) -> str:
@@ -123,7 +127,15 @@ class Cog(BaseCog):
 
     @cached_property
     def config(self) -> Config:
+        return ChainConfig((self.cog_config, self.bot_config))
+
+    @cached_property
+    def cog_config(self) -> Config:
         return CogConfig(self.bot, self.__class__)
+
+    @cached_property
+    def bot_config(self) -> Config:
+        return BotConfig(self.bot)
 
     @cached_property
     def logger(self) -> logging.Logger:
@@ -140,3 +152,17 @@ class Cog(BaseCog):
 
     def error(self, msg: str, *args, **kwargs) -> None:
         self.logger.error(msg, *args, **kwargs)
+
+
+@dataclass
+class RedisCog(Cog):
+    @cached_property
+    def redis(self) -> StrictRedis:
+        from redis import from_url
+
+        return from_url(self.config['REDIS_URL'])
+
+    @Cog.on_ready
+    async def on_ready(self):
+        self.bot.send
+        self.redis.keys()

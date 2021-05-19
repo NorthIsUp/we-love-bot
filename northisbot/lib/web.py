@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 from aiohttp import web, web_middlewares
 from discord.ext import commands
 
-from northisbot.lib.cog import Cog
+from .cog import Cog
 
 logger = logging.getLogger(__name__)
 MethodsT = Literal['CONNECT', 'HEAD', 'GET', 'DELETE', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'TRACE']

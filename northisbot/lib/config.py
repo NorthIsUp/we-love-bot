@@ -5,13 +5,14 @@ import re
 from abc import ABC, abstractmethod
 from asyncio.log import logger
 from dataclasses import dataclass
+from distutils.command.config import config
 from functools import cached_property
 from logging.config import dictConfig
 from os import environ
-from typing import TYPE_CHECKING, Optional, Type, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Type, Union
 
 if TYPE_CHECKING:
-    from .bot import NorthIsBot
+    from .bot import Bot
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +46,27 @@ class Config(ABC):
 
 
 @dataclass
+class ChainConfig(Config):
+    configs: Sequence[Config]
+
+    def _getitem(self, key: str) -> str:
+        for c in self.configs:
+            try:
+                return c[key]
+            except KeyError as e:
+                if c is self.configs[-1]:
+                    raise
+        assert False, 'this should not be reached'
+
+
+@dataclass
 class EnvConfig(Config):
     def __post_init__(self):
         self.prefix = self._snake_case(self.prefix)
 
     @cached_property
     def prefix(self) -> str:
-        raise NotImplementedError('do this')
+        raise NotImplementedError('prefix must be overridden')
 
     @staticmethod
     def _snake_case(s: str) -> str:
@@ -70,7 +85,7 @@ class EnvConfig(Config):
 
 @dataclass
 class BotConfig(EnvConfig):
-    bot: Union[Type[NorthIsBot], NorthIsBot]
+    bot: Union[Type[Bot], Bot]
 
     def __post_init__(self) -> None:
         """try for bot.config_prefix first, otherwise the class name"""
