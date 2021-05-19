@@ -1,0 +1,7 @@
+{
+    "python.pythonPath": "~/.virtualenvs/welovebot/bin/python3",
+    "editor.formatOnSave": true,
+    "python.formatting.blackArgs": [
+        "--line-length=100"
+    ]
+}
