@@ -1,5 +1,7 @@
 discord-py-slash-command~=1.1.2
 discord.py~=1.7.1
+# hi
 flask~=1.1.2
+redis~=3.5.3
 requests~=2.25.0
 toolz~=0.11.0

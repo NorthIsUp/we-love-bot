@@ -23,11 +23,11 @@ $(REQ_TXT): %.txt: %.in
 pip-$(PIP_INSTALL): %: %.in
 	pip install -r $<
 
-# pip-install: requirement.txt
-# 	pip install -r $<
+install: requirements.txt
+	pip install -r $<
 
-# pip-install-test: requirements-test.txt
-# 	pip install -r $<
+pip-install-test: requirements-test.txt
+	pip install -r $<
 
 docker-build: Dockerfile
 	docker build -t $(NAME):$(TAG) -f $< .

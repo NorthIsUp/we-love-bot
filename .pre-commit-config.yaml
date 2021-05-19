@@ -5,6 +5,8 @@ repos:
   - id: check-yaml
   - id: end-of-file-fixer
   - id: trailing-whitespace
+  - id: requirements-txt-fixer
+    files: requirements*.in
 - repo: git@github.com:discord/black.git
   rev: discord
   hooks:
