@@ -16,7 +16,7 @@ try:
 
     logger.info('starting bot')
     bot = Bot('!')
-    bot.run(extension_roots=[welovebot_root / 'welovebot'])
+    bot.run(installed_apps=['welovebot.apps'])
 except Exception as e:
     logger.exception(e)
 finally:

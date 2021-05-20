@@ -3,11 +3,12 @@ from __future__ import annotations
 import importlib
 import pkgutil
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cached_property, singledispatchmethod
 from logging import Logger, getLogger
 from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING, Optional, Sequence, Union
+from urllib.request import HTTPPasswordMgrWithPriorAuth
 
 import discord
 from discord.ext import commands
@@ -50,19 +51,25 @@ class Bot(commands.Bot):
             override_type=True,
         )
 
-    def discover_extensions(self, path: Union[Path, str]):
+    def discover_extensions(self, path_or_mod: Union[Path, str]):
         """load all cogs under path"""
-        path = Path(path)
+        try:
+            mod = importlib.import_module(path_or_mod)
+            path = Path(mod.__file__).parent
+            logger.info(f'loading extensions from module: {mod}')
+        except ImportError:
+            path = Path(path_or_mod)
+            logger.info(f'loading extensions from path: {path}')
 
-        logger.info('loading extensions')
-        for location in [path / 'apps']:
-            if not location.exists():
-                continue
+            if not path.exists():
+                raise RuntimeError(f"path '{path}' does not exist")
 
-            for (module_loader, name, ispkg) in pkgutil.iter_modules([str(location)]):
-                mod = importlib.import_module(f'{path.name}.{location.name}.{name}')
-                for name in dir(mod):
-                    self.discover_extension(name, mod)
+        for (module_loader, name, ispkg) in pkgutil.iter_modules([str(path)]):
+            mod = module_loader.find_module(name).load_module(name)
+            # mod = importlib.import_module(f'{path.name}.{name}')
+            logger.info(f'loading extensions from {mod}')
+            for name in dir(mod):
+                self.discover_extension(name, mod)
 
     def discover_extension(self, name: str, mod: ModuleType) -> None:
         """attempt to load an extension from a module"""
@@ -106,9 +113,9 @@ class Bot(commands.Bot):
         # is this a bot, yes, yes it is
         bot: bool = True,
         # roots to search for cogs and other extensions
-        extension_roots: Sequence[Path] = (),
+        installed_apps: Sequence[str] = (),
     ) -> None:
-        for root in extension_roots:
-            self.discover_extensions(root)
+        for app_module in installed_apps:
+            self.discover_extensions(app_module)
 
         super().run(token or self.config['DISCORD_TOKEN'], bot=bot)
