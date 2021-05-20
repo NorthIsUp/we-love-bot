@@ -44,7 +44,10 @@ class Bot(commands.Bot):
     def slash(self) -> SlashCommand:
         """use as a decorator to mark functions as slash commands"""
         return SlashCommand(
-            self, application_id=self.application_id, sync_commands=True, override_type=True,
+            self,
+            application_id=self.application_id,
+            sync_commands=True,
+            override_type=True,
         )
 
     def discover_extensions(self, path: Union[Path, str]):

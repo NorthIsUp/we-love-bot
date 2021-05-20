@@ -1,3 +1,5 @@
+ci:
+  skip: [hadolint]
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v2.3.0
@@ -7,16 +9,13 @@ repos:
   - id: trailing-whitespace
   - id: requirements-txt-fixer
     files: requirements*.in
-- repo: git@github.com:discord/black.git
-  rev: discord
+- repo: https://github.com/odwyersoftware/brunette
+  rev: 0.2.0
   hooks:
-  - id: black
+  - id: brunette
     language: python
     language_version: python3.9
-    entry: python -m black --line-length=100
-    types:
-    - file
-    files: ^.*.py$
+    args: [--single-quotes, --line-length=100]
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
   rev: v1.5.0
   hooks:

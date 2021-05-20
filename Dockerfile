@@ -1,11 +1,12 @@
 FROM python:3.9
 WORKDIR /app
 
-RUN python -m pip install --no-cache-dir pip-tools==1.8.2
+RUN python3 -m pip install --no-cache-dir pip-tools==6.1.0
 
 COPY requirements.in ./
-RUN pip-compile requirements.in \
-    && python -m pip install --no-cache-dir -r requirements.txt
+RUN \
+    python3 -m piptools compile requirements.in \
+    && python3 -m pip install --no-cache-dir -r requirements.txt
 
 COPY welovebot/ welovebot/
 COPY entrypoint.sh ./

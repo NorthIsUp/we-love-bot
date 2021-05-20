@@ -138,7 +138,11 @@ def configure_logging():
         'version': 1,
         'formatters': {'f': {'format': '%(asctime)s %(levelname)-8s %(name)-20s -- %(message)s'}},
         'handlers': {
-            'console': {'class': 'logging.StreamHandler', 'formatter': 'f', 'level': logging.DEBUG,}
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'f',
+                'level': logging.DEBUG,
+            }
         },
         'loggers': {
             '': {'handlers': ['console'], 'level': logging.DEBUG, 'propagate': True},
