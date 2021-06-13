@@ -90,6 +90,8 @@ class Bot(commands.Bot):
         elif isinstance(loadable, commands.Command):
             logger.info(f'- discovred Command {loadable}@{repr(loadable)}')
             self.add_command(loadable)
+        elif isinstance(loadable, (int, str, bool, tuple, list)):
+            logger.debug(f'- {name} is a primitive yo, {type(name)}`')
         else:
             logger.debug(f'- falling back to `load_extension({name})`')
             self.load_extension(name)

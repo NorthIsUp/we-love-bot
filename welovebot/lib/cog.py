@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from functools import cached_property, wraps
-from typing import TYPE_CHECKING, List, Optional, Type
+from time import time
+from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional, Type, Union
 
 from discord.ext import commands
 from discord_slash import cog_ext
 from redis import StrictRedis
 
-from .config import BotConfig, ChainConfig, CogConfig, Config
+from .config import BotConfig, ChainConfig, CogConfig
+from .config import Config as BaseConfig
+from .config import TypedChainConfig
 
 if TYPE_CHECKING:
     from .bot import Bot
@@ -23,13 +27,48 @@ class BaseCog(commands.Cog):
         return cls.listener('on_ready')(func)
 
     @classmethod
-    def on_ready_create_task(cls, func):
+    def on_ready_create_task(cls, func: Callable[[Cog], None]):
         @cls.listener('on_ready')
         @wraps(func)
         async def wrapper(self):
             self.bot.loop.create_task(func(self))
 
         return wrapper
+
+    @classmethod
+    def on_ready_create_perodic_task(cls, seconds: int = 0):
+        def decorator(func: Callable[[Cog], Awaitable[None]]):
+            @cls.listener('on_ready')
+            @wraps(func)
+            async def wrapper(self: Cog):
+                async def _perodic_task() -> None:
+                    name = f'{self.__class__.__name__}.{func.__name__}'
+                    previous_duration = ''
+                    while True:
+                        try:
+                            start = time()
+                            self.debug(f'periodic - {name} - every {seconds}s{previous_duration}')
+                            await func(self)
+                            duration = time() - start
+
+                            s, c = (
+                                (1000000, 'µ')
+                                if duration < 0.001
+                                else (1000, 'm')
+                                if duration < 0.1
+                                else (1, '')
+                            )
+                            previous_duration = f' - previous duration: {duration * s:.2f}{c}s'
+
+                        except Exception as e:
+                            self.exception(e)
+                        await asyncio.sleep(seconds)
+
+                self.bot.loop.create_task(_perodic_task())
+
+            return wrapper
+
+        return decorator
 
     @classmethod
     def command(
@@ -121,20 +160,31 @@ class BaseCog(commands.Cog):
 class Cog(BaseCog):
     bot: Bot
 
+    class Config:
+        pass
+
     @cached_property
     def name(self) -> str:
         return self.__class__.__name__
 
     @cached_property
-    def config(self) -> Config:
+    def config(self) -> BaseConfig:
         return ChainConfig((self.cog_config, self.bot_config))
 
     @cached_property
-    def cog_config(self) -> Config:
+    def config_safe(self) -> TypedChainConfig:
+        try:
+            return TypedChainConfig((self.cog_config, self.bot_config), self.Config)
+        except Exception as e:
+            self.exception(e)
+            raise
+
+    @cached_property
+    def cog_config(self) -> BaseConfig:
         return CogConfig(self.bot, self.__class__)
 
     @cached_property
-    def bot_config(self) -> Config:
+    def bot_config(self) -> BaseConfig:
         return BotConfig(self.bot)
 
     @cached_property
@@ -152,6 +202,9 @@ class Cog(BaseCog):
 
     def error(self, msg: str, *args, **kwargs) -> None:
         self.logger.error(msg, *args, **kwargs)
+
+    def exception(self, msg: Union[str, Exception], *args, **kwargs) -> None:
+        self.logger.exception(msg, *args, **kwargs)
 
 
 @dataclass

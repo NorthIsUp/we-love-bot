@@ -7,7 +7,19 @@ from dataclasses import dataclass
 from functools import cached_property
 from logging.config import dictConfig
 from os import environ
-from typing import TYPE_CHECKING, ChainMap, ClassVar, Optional, Sequence, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    ChainMap,
+    ClassVar,
+    Dict,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 
 if TYPE_CHECKING:
     from .bot import Bot
@@ -16,15 +28,24 @@ logger = logging.getLogger(__name__)
 
 
 class Config(ABC):
+    def _log_miss_msg(self, key: str) -> None:
+        logger.debug(f'config miss: {key}')
+
+    def _log_hit_msg(self, key: str) -> None:
+        logger.debug(f'config hit: {key}')
+
+    def _log_default_msg(self, key: str) -> None:
+        logger.debug(f'config default: {key}')
+
     def __getitem__(self, key: str) -> str:
         key = self._key(key)
         try:
             value = self._getitem(key)
         except KeyError:
-            logger.debug(f'config miss: {key}')
+            self._log_miss_msg(key)
             raise
         else:
-            logger.debug(f'config hit: {key}')
+            self._log_hit_msg(key)
             return value
 
     def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
@@ -32,7 +53,7 @@ class Config(ABC):
             key = self._key(key)
             return self[key]
         except KeyError:
-            logger.debug(f'config default: {key}')
+            self._log_default_msg(key)
             return default
 
     def _key(self, key: str) -> str:
@@ -55,6 +76,50 @@ class ChainConfig(Config):
                 if c is self.configs[-1]:
                     raise
         assert False, 'this should not be reached'
+
+
+@dataclass
+class TypedChainConfig(ChainConfig):
+    types: Type
+
+    def _log_hit_msg(self, key: str) -> None:
+        a = self.types.__annotations__[key]
+        logger.debug(f'config hit: {key} (as type {a})')
+
+    def _log_default_msg(self, key: str) -> None:
+        a = self.types.__annotations__[key]
+        logger.debug(f'config default: {key} (as type {a})')
+
+    def _as_sequence(
+        to: Union[Type[set], Type[list], Type[tuple]]
+    ) -> Callable[[str], Sequence[str]]:
+        def _to_seq(seq: str, cls: Type = str) -> Union[set, list, tuple]:
+            return to(cls(_.strip()) for _ in seq.split(','))
+
+        return _to_seq
+
+    _simple_type_map: ClassVar[Dict[str, Callable]] = {
+        'str': str,
+        'int': int,
+        'float': float,
+        'Set': _as_sequence(set),
+        'List': _as_sequence(list),
+        'Tuple': _as_sequence(tuple),
+    }
+
+    def _getitem(self, key: str) -> str:
+        if (annotation := self.types.__annotations__.get(key)) is None:
+            raise TypeError(f'{key} must be declared in the TypeConfig')
+
+        item = super()._getitem(key)
+
+        logger.debug(f'config hit: {key} (as type {annotation})')
+        if '[' in annotation:
+            sequence, to_cls_name = annotation[:-1].split('[')
+            to_cls = self._simple_type_map[to_cls_name]
+            return self._simple_type_map[sequence](item, to_cls)
+        else:
+            return self._simple_type_map[annotation](item)
 
 
 class KeyT(str):

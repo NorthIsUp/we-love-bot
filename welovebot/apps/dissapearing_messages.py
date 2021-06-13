@@ -33,17 +33,7 @@ class DissapearingMessages(Cog):
 
         return dissapearing_channels
 
-    @Cog.on_ready_create_task
-    async def periodic_cleanup(self):
-        self.info('starting clean loop')
-        while True:
-            try:
-                await self.cleanup()
-            except Exception as e:
-                self.exception(e)
-
-            await asyncio.sleep(self.period)
-
+    @Cog.on_ready_create_perodic_task(60)
     async def cleanup(self):
         self.info('cleaning up messages')
         for channel_id in self.dissapearing_channels:

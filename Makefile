@@ -4,35 +4,43 @@ DOCKERFILE := $(wildcard Dockerfile)
 NAME = welovebot
 TAG = latest
 
-# generate *.txt file names from *.in name
-REQ_TXT = $(REQ_IN:%.in=%.txt)
-PIP_INSTALL = $(REQ_IN:%.in=%)
+# pip requirements
+REQ_OBJECTS = $(wildcard *.in)
+REQ_OUTPUTS = $(REQ_OBJECTS:.in=.txt)
+REQ_SYNC_TARGETS = $(REQ_OBJECTS:%.in=sync-%)
+REQ_UPGRADE_TARGETS = $(REQ_OBJECTS:%.in=upgrade-%)
+.PHONY: all check clean $(REQ_SYNC_TARGETS) $(REQ_UPGRADE_TARGETS)
 
-bootstrap:
-bootstrap: pre-commit pip-install
+all: $(REQ_OUTPUTS)
 
+%.txt: %.in
+	@pip-compile -v --output-file $@ $<
+
+dev.txt: main.txt
+
+check:
+	@which pip-compile > /dev/null
+
+$(REQ_SYNC_TARGETS): sync-%: %.txt
+	@pip-sync $<
+
+$(REQ_UPGRADE_TARGETS): upgrade-%: %.in
+	@pip-compile --upgrade $<
+
+upgrade-dev: upgrade-main
+
+install: $(REQ_OUTPUTS)
+	@pip install -r $<
+
+## Git hooks
 pre-commit:
 	pre-commit install
 
-# rule to match any *.txt requirement and install it
-$(REQ_TXT): %.txt: %.in
-	echo "Call pip-compile to generate $@ from $<"
-	pip-compile $< --output-file $@
-	pip install -r $@
-
-pip-$(PIP_INSTALL): %: %.in
-	pip install -r $<
-
-install: requirements.txt
-	pip install -r $<
-
-pip-install-test: requirements-test.txt
-	pip install -r $<
-
+## Docker
 docker-build: Dockerfile
 	docker build -t $(NAME):$(TAG) -f $< .
 
-run: docker-build
+docker-run: docker-build
 	docker run \
 		-e WELOVEBOT__CONFIG_PREFIX=WELOVEBOT \
 		-e WELOVEBOT__DISCORD_TOKEN=${WELOVEBOT__DISCORD_TOKEN} \
@@ -41,12 +49,6 @@ run: docker-build
 		-p 8080:80 \
 		$(NAME):$(TAG)
 
-dev: requirements-dev.txt
-test: requirements-test.txt
-
-clean:
-	/bin/rm -fv requirements*.txt
+clean: check
+	-@rm -fv requirements*.txt
 	find . -iname '*.pyc' -delete
-
-all: run
-.PHONY: all requirements.txt docker-build
