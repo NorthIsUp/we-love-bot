@@ -84,10 +84,12 @@ class TypedChainConfig(ChainConfig):
 
     def _log_hit_msg(self, key: str) -> None:
         a = self.types.__annotations__[key]
+        a = a.__name__ if isinstance(a, type) else a
         logger.debug(f'config hit: {key} (as type {a})')
 
     def _log_default_msg(self, key: str) -> None:
         a = self.types.__annotations__[key]
+        a = a.__name__ if isinstance(a, type) else a
         logger.debug(f'config default: {key} (as type {a})')
 
     def _as_sequence(
@@ -112,8 +114,9 @@ class TypedChainConfig(ChainConfig):
             raise TypeError(f'{key} must be declared in the TypeConfig')
 
         item = super()._getitem(key)
+        annotation = annotation.__name__ if isinstance(annotation, type) else annotation
 
-        logger.debug(f'config hit: {key} (as type {annotation})')
+        # logger.debug(f"config hit: {key} (as type {annotation})")
         if '[' in annotation:
             sequence, to_cls_name = annotation[:-1].split('[')
             to_cls = self._simple_type_map[to_cls_name]

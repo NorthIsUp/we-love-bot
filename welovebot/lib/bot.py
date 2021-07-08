@@ -3,12 +3,11 @@ from __future__ import annotations
 import importlib
 import pkgutil
 from dataclasses import dataclass
-from functools import cached_property, singledispatchmethod
+from functools import cached_property
 from logging import Logger, getLogger
 from pathlib import Path
 from types import ModuleType
-from typing import TYPE_CHECKING, Optional, Sequence, Union
-from urllib.request import HTTPPasswordMgrWithPriorAuth
+from typing import TYPE_CHECKING, List, Optional, Sequence, Union
 
 import discord
 from discord.ext import commands
@@ -51,23 +50,30 @@ class Bot(commands.Bot):
             override_type=True,
         )
 
-    def discover_extensions(self, path_or_mod: Union[Path, str]):
+    def discover_extensions(self, *paths_or_mods: Union[Path, str]):
         """load all cogs under path"""
-        try:
-            mod = importlib.import_module(path_or_mod)
-            path = Path(mod.__file__).parent
-            logger.info(f'loading extensions from module: {mod}')
-        except ImportError:
-            path = Path(path_or_mod)
-            logger.info(f'loading extensions from path: {path}')
+        mods: List[ModuleType] = []
 
-            if not path.exists():
-                raise RuntimeError(f"path '{path}' does not exist")
+        for path_or_mod in paths_or_mods:
+            try:
+                mod = importlib.import_module(str(path_or_mod))
+                mods.append(mod)
+            except ImportError:
+                path = Path(path_or_mod)
+                logger.info(f'loading extensions from path: {path}')
 
-        for (module_loader, name, ispkg) in pkgutil.iter_modules([str(path)]):
-            mod = module_loader.find_module(name).load_module(name)
-            # mod = importlib.import_module(f'{path.name}.{name}')
-            logger.info(f'loading extensions from {mod}')
+                if not path.exists():
+                    raise RuntimeError(f"path '{path}' does not exist")
+
+                logger.debug(f'itermod {path} {list(pkgutil.iter_modules([str(path)]))}')
+                for (module_loader, name, _ispkg) in pkgutil.iter_modules([str(path)]):
+                    sub_loader = module_loader.find_module(name)
+                    if sub_loader:
+                        mod = sub_loader.load_module(name)
+                        mods.append(mod)
+
+        for mod in mods:
+            logger.info(f'loading extensions from {mod.__name__} at {mod.__file__}')
             for name in dir(mod):
                 self.discover_extension(name, mod)
 
@@ -91,7 +97,7 @@ class Bot(commands.Bot):
             logger.info(f'- discovred Command {loadable}@{repr(loadable)}')
             self.add_command(loadable)
         elif isinstance(loadable, (int, str, bool, tuple, list)):
-            logger.debug(f'- {name} is a primitive yo, {type(name)}`')
+            pass
         else:
             logger.debug(f'- falling back to `load_extension({name})`')
             self.load_extension(name)
@@ -117,7 +123,6 @@ class Bot(commands.Bot):
         # roots to search for cogs and other extensions
         installed_apps: Sequence[str] = (),
     ) -> None:
-        for app_module in installed_apps:
-            self.discover_extensions(app_module)
+        self.discover_extensions(*installed_apps)
 
         super().run(token or self.config['DISCORD_TOKEN'], bot=bot)

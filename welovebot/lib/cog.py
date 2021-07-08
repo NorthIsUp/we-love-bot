@@ -31,7 +31,9 @@ class BaseCog(commands.Cog):
         @cls.listener('on_ready')
         @wraps(func)
         async def wrapper(self):
-            self.bot.loop.create_task(func(self))
+            self.debug(f'[on_ready] starting {func.__name__}')
+            await self.bot.loop.create_task(func(self))
+            self.debug(f'[on_ready] complete {func.__name__}')
 
         return wrapper
 
