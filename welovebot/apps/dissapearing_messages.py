@@ -33,7 +33,7 @@ class DissapearingMessages(Cog):
 
         return dissapearing_channels
 
-    @Cog.on_ready_create_perodic_task(60)
+    @Cog.perodic_task(60)
     async def cleanup(self):
         self.info('cleaning up messages')
         for channel_id in self.dissapearing_channels:

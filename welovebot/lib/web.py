@@ -75,7 +75,7 @@ class WebCog(Cog):
 
         return decorator
 
-    @Cog.on_ready_create_task
+    @Cog.task
     async def start(self):
         runner = web.AppRunner(self.web_app)
 

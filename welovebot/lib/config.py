@@ -78,6 +78,13 @@ class ChainConfig(Config):
         assert False, 'this should not be reached'
 
 
+def _as_sequence(to: Type[Union[set, list, tuple]]) -> Callable[[str], Sequence[str]]:
+    def _to_seq(seq: str, cls: Type = str) -> Union[set, list, tuple]:
+        return to(cls(_.strip()) for _ in seq.split(','))
+
+    return _to_seq
+
+
 @dataclass
 class TypedChainConfig(ChainConfig):
     types: Type
@@ -91,14 +98,6 @@ class TypedChainConfig(ChainConfig):
         a = self.types.__annotations__[key]
         a = a.__name__ if isinstance(a, type) else a
         logger.debug(f'config default: {key} (as type {a})')
-
-    def _as_sequence(
-        to: Union[Type[set], Type[list], Type[tuple]]
-    ) -> Callable[[str], Sequence[str]]:
-        def _to_seq(seq: str, cls: Type = str) -> Union[set, list, tuple]:
-            return to(cls(_.strip()) for _ in seq.split(','))
-
-        return _to_seq
 
     _simple_type_map: ClassVar[Dict[str, Callable]] = {
         'str': str,

@@ -22,23 +22,29 @@ logger = logging.getLogger(__name__)
 
 
 class BaseCog(commands.Cog):
-    @classmethod
-    def on_ready(cls, func):
-        return cls.listener('on_ready')(func)
+    @property
+    def loop(self) -> asyncio.AbstractEventLoop:
+        """helper to access the bot event loop"""
+        return self.bot.loop
 
     @classmethod
-    def on_ready_create_task(cls, func: Callable[[Cog], None]):
-        @cls.listener('on_ready')
+    def on_ready(cls, func):
+        """decorator to run a function on the 'on_ready' event"""
+        return cls.task(func, listener='on_ready')
+
+    @classmethod
+    def task(cls, func: Callable[[Cog], None], listener='on_ready'):
+        @cls.listener(listener)
         @wraps(func)
         async def wrapper(self):
             self.debug(f'[on_ready] starting {func.__name__}')
-            await self.bot.loop.create_task(func(self))
+            await self.loop.create_task(func(self))
             self.debug(f'[on_ready] complete {func.__name__}')
 
         return wrapper
 
     @classmethod
-    def on_ready_create_perodic_task(cls, seconds: int = 0):
+    def perodic_task(cls, seconds: int = 0, listener='on_ready'):
         def decorator(func: Callable[[Cog], Awaitable[None]]):
             @cls.listener('on_ready')
             @wraps(func)
@@ -66,7 +72,7 @@ class BaseCog(commands.Cog):
                             self.exception(e)
                         await asyncio.sleep(seconds)
 
-                self.bot.loop.create_task(_perodic_task())
+                self.loop.create_task(_perodic_task())
 
             return wrapper
 

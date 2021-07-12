@@ -13,7 +13,7 @@ class Moderation(Cog):
         members: commands.Greedy[discord.Member],
         delete_days: typing.Optional[int] = 0,
         *,
-        reason: str
+        reason: str,
     ):
         """Mass bans members with an optional delete_days parameter"""
         for member in members:
