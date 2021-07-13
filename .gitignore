@@ -1,0 +1,5 @@
+.envrc
+.mypy_cache/
+.vscode/
+requirements*.txt
+**/*.pyc

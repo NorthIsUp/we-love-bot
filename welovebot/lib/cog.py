@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from functools import cached_property, wraps
+from re import I
 from time import time
 from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional, Type, Union
 
@@ -13,12 +15,14 @@ from redis import StrictRedis
 
 from .config import BotConfig, ChainConfig, CogConfig
 from .config import Config as BaseConfig
-from .config import TypedChainConfig
+from .config import EnvConfig, TypedChainConfig
 
 if TYPE_CHECKING:
     from .bot import Bot
 
 logger = logging.getLogger(__name__)
+
+TaskCallableT = Callable[['Cog'], Awaitable[None]]
 
 
 class BaseCog(commands.Cog):
@@ -33,29 +37,67 @@ class BaseCog(commands.Cog):
         return cls.task(func, listener='on_ready')
 
     @classmethod
-    def task(cls, func: Callable[[Cog], None], listener='on_ready'):
-        @cls.listener(listener)
-        @wraps(func)
-        async def wrapper(self):
-            self.debug(f'[on_ready] starting {func.__name__}')
-            await self.loop.create_task(func(self))
-            self.debug(f'[on_ready] complete {func.__name__}')
+    def task(
+        cls,
+        func_or_listener: Union[str, TaskCallableT],
+        *,
+        listener: str = 'on_ready',
+    ) -> TaskCallableT:
+        print(f'setting up listener {listener} for {func_or_listener}')
 
-        return wrapper
+        if isinstance(func_or_listener, str):
+            listener = func_or_listener
+        elif func_or_listener.__name__.startswith('on_'):
+            listener = func_or_listener.__name__
+
+        def decorator(func: TaskCallableT):
+            print(f'listener {listener}')
+
+            @cls.listener(listener)
+            @wraps(func)
+            async def wrapper(self):
+                print(f'inside listener {listener}')
+                self.debug(f'[{listener}] starting {func.__name__}')
+                await self.loop.create_task(func(self))
+                self.debug(f'[{listener}] complete {func.__name__}')
+
+            return wrapper
+
+        return decorator if isinstance(func_or_listener, str) else decorator(func_or_listener)
 
     @classmethod
-    def perodic_task(cls, seconds: int = 0, listener='on_ready'):
+    def perodic_task(
+        cls,
+        seconds: int = 0,
+        *,
+        weeks: int = 0,
+        days: int = 0,
+        hours: int = 0,
+        minutes: int = 0,
+        milliseconds: int = 0,
+        listener='on_ready',
+    ):
+        interval = timedelta(
+            weeks=weeks,
+            days=days,
+            hours=hours,
+            minutes=minutes,
+            seconds=seconds,
+            milliseconds=milliseconds,
+        ).total_seconds()
+
         def decorator(func: Callable[[Cog], Awaitable[None]]):
-            @cls.listener('on_ready')
+            @cls.listener(listener)
             @wraps(func)
             async def wrapper(self: Cog):
                 async def _perodic_task() -> None:
                     name = f'{self.__class__.__name__}.{func.__name__}'
                     previous_duration = ''
+
                     while True:
                         try:
                             start = time()
-                            self.debug(f'periodic - {name} - every {seconds}s{previous_duration}')
+                            self.debug(f'periodic - {name} - every {interval}s{previous_duration}')
                             await func(self)
                             duration = time() - start
 
@@ -70,7 +112,7 @@ class BaseCog(commands.Cog):
 
                         except Exception as e:
                             self.exception(e)
-                        await asyncio.sleep(seconds)
+                        await asyncio.sleep(interval)
 
                 self.loop.create_task(_perodic_task())
 
@@ -186,6 +228,10 @@ class Cog(BaseCog):
         except Exception as e:
             self.exception(e)
             raise
+
+    @cached_property
+    def config_raw(self) -> EnvConfig:
+        return self.bot.config
 
     @cached_property
     def cog_config(self) -> BaseConfig:

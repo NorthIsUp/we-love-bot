@@ -51,4 +51,4 @@ class Tinybeans(Cog):
     @Cog.perodic_task(1)
     async def periodic_sync(self):
         for e in self.entries:
-            print(e, e.type, e.blobs.get('o'))
+            print(e, e.type, e.blobs.o)

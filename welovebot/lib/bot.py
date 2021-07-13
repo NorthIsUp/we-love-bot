@@ -41,6 +41,11 @@ class Bot(commands.Bot):
         return BotConfig(self)
 
     @cached_property
+    def config_env(self) -> Config:
+        """config for the bot, accessable via __getitem__ or get(key, default)"""
+        from .config import EnvConfig
+
+    @cached_property
     def slash(self) -> SlashCommand:
         """use as a decorator to mark functions as slash commands"""
         return SlashCommand(
@@ -124,5 +129,5 @@ class Bot(commands.Bot):
         installed_apps: Sequence[str] = (),
     ) -> None:
         self.discover_extensions(*installed_apps)
-
+        self.dispatch('run')
         super().run(token or self.config['DISCORD_TOKEN'], bot=bot)

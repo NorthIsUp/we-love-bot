@@ -65,6 +65,31 @@ class Config(ABC):
 
 
 @dataclass
+class PrefixConfig(Config, ABC):
+    default_prefix: ClassVar[str] = 'WELOVEBOT'
+    default_envvar: ClassVar[str] = 'WELOVEBOT_CONFIG_PREFIX'
+
+    def __init__(self, prefix: Optional[str] = None) -> None:
+        self.set_prefix(prefix)
+
+    @staticmethod
+    def _join_prefix(*s: str) -> KeyT:
+        return KeyT(('__'.join(s)).upper())
+
+    @cached_property
+    def prefix(self):
+        raise NotImplementedError('provide a prefix')
+
+    def set_prefix(self, prefix: Optional[str]) -> None:
+        self.prefix = prefix or environ.get(self.default_envvar, self.default_prefix)
+
+    def _key(self, key: str) -> KeyT:
+        if isinstance(key, KeyT):
+            return key
+        return self._join_prefix(self.prefix, key)
+
+
+@dataclass
 class ChainConfig(Config):
     configs: Sequence[Config]
 
@@ -108,6 +133,9 @@ class TypedChainConfig(ChainConfig):
         'Tuple': _as_sequence(tuple),
     }
 
+    def _getdefault(self, key: str) -> str:
+        return getattr(self, key, None)
+
     def _getitem(self, key: str) -> str:
         if (annotation := self.types.__annotations__.get(key)) is None:
             raise TypeError(f'{key} must be declared in the TypeConfig')
@@ -129,35 +157,12 @@ class KeyT(str):
 
 
 @dataclass
-class EnvConfig(Config):
-
-    default_prefix: ClassVar[str] = 'WELOVEBOT'
-    default_envvar: ClassVar[str] = 'WELOVEBOT_CONFIG_PREFIX'
-
-    def __init__(self, prefix: Optional[str] = None) -> None:
-        self.set_prefix(prefix)
-
+class EnvConfig(PrefixConfig):
     @staticmethod
     def _snake_case(s: str) -> str:
         if isinstance(s, KeyT):
             return s
         return re.sub('(?!^)([A-Z]+)', r'_\1', s).upper()
-
-    @staticmethod
-    def _join_prefix(*s: str) -> KeyT:
-        return KeyT(('__'.join(s)).upper())
-
-    @cached_property
-    def prefix(self):
-        raise NotImplementedError('provide a prefix')
-
-    def set_prefix(self, prefix: Optional[str]) -> None:
-        self.prefix = prefix or environ.get(self.default_envvar, self.default_prefix)
-
-    def _key(self, key: str) -> KeyT:
-        if isinstance(key, KeyT):
-            return key
-        return self._join_prefix(self.prefix, key)
 
     def _getitem(self, key: str) -> str:
         return environ[key]
