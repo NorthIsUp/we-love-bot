@@ -5,7 +5,6 @@ import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property, wraps
-from re import I
 from time import time
 from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional, Type, Union
 
@@ -42,6 +41,8 @@ class BaseCog(commands.Cog):
         func_or_listener: Union[str, TaskCallableT],
         *,
         listener: str = 'on_ready',
+        filter: Optional[Callable[[...], bool]] = None,
+        filter_method: Optional[Callable[[Cog, ...], bool]] = None,
     ) -> TaskCallableT:
         print(f'setting up listener {listener} for {func_or_listener}')
 
@@ -55,10 +56,16 @@ class BaseCog(commands.Cog):
 
             @cls.listener(listener)
             @wraps(func)
-            async def wrapper(self):
+            async def wrapper(self, *args, **kwargs):
                 print(f'inside listener {listener}')
+                if filter and filter(*args, **kwargs) is False:
+                    self.debug(f'skipping listener {listener}')
+                    return
+                if filter_method and filter_method(self, *args, **kwargs) is False:
+                    self.debug(f'skipping listener {listener}')
+                    return
                 self.debug(f'[{listener}] starting {func.__name__}')
-                await self.loop.create_task(func(self))
+                await self.loop.create_task(func(self, *args, **kwargs))
                 self.debug(f'[{listener}] complete {func.__name__}')
 
             return wrapper

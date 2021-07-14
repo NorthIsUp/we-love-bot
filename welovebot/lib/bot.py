@@ -24,14 +24,12 @@ class Bot(commands.Bot):
     def __init__(
         self,
         *args,
-        application_id: Optional[str] = None,
         config_prefix: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
         self.config_prefix = config_prefix
-        self.application_id = self.config.get('APPLICATION_ID', application_id)
 
     @cached_property
     def config(self) -> Config:
@@ -130,4 +128,4 @@ class Bot(commands.Bot):
     ) -> None:
         self.discover_extensions(*installed_apps)
         self.dispatch('run')
-        super().run(token or self.config['DISCORD_TOKEN'], bot=bot)
+        super().run(token or self.config['DISCORD_TOKEN'])

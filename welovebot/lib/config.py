@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import cached_property
@@ -128,9 +129,9 @@ class TypedChainConfig(ChainConfig):
         'str': str,
         'int': int,
         'float': float,
-        'Set': _as_sequence(set),
-        'List': _as_sequence(list),
-        'Tuple': _as_sequence(tuple),
+        'set': _as_sequence(set),
+        'list': _as_sequence(list),
+        'tuple': _as_sequence(tuple),
     }
 
     def _getdefault(self, key: str) -> str:
@@ -141,15 +142,16 @@ class TypedChainConfig(ChainConfig):
             raise TypeError(f'{key} must be declared in the TypeConfig')
 
         item = super()._getitem(key)
-        annotation = annotation.__name__ if isinstance(annotation, type) else annotation
 
-        # logger.debug(f"config hit: {key} (as type {annotation})")
-        if '[' in annotation:
-            sequence, to_cls_name = annotation[:-1].split('[')
-            to_cls = self._simple_type_map[to_cls_name]
-            return self._simple_type_map[sequence](item, to_cls)
-        else:
-            return self._simple_type_map[annotation](item)
+        if isinstance(annotation, typing._GenericAlias):
+            origin_name = annotation.__origin__.__name__
+            to_cls_name = annotation.__args__[0].__name__
+            to_cls_type = self._simple_type_map[to_cls_name]
+            return self._simple_type_map[origin_name](item, to_cls_type)
+        elif isinstance(annotation, type):
+            annotation = annotation.__name__
+
+        return self._simple_type_map[annotation](item)
 
 
 class KeyT(str):

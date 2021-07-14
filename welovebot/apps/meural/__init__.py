@@ -47,4 +47,7 @@ class Meural(Cog):
             from pytinybeans import PyTinybeans
 
             tb = PyTinybeans()
-            tb.login(self.bot.config['TINYBEANS__LOGIN'], self.bot.config['TINYBEANS__PASSWORD'])
+            tb.login(
+                self.bot.config['TINYBEANS__LOGIN'],
+                self.bot.config['TINYBEANS__PASSWORD'],
+            )
