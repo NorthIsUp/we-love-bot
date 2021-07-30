@@ -1,7 +1,9 @@
 {
-    "python.pythonPath": "/Users/adam/.virtualenvs/we-love-bot/bin/python",
-    "editor.formatOnSave": true,
-    "python.formatting.blackArgs": [
-        "--line-length=100"
-    ]
+  "python.pythonPath": "/Users/adam/.virtualenvs/we-love-bot/bin/python",
+  "editor.formatOnSave": true,
+  "python.formatting.blackArgs": [
+    "--single-quotes",
+    "--line-length=100"
+  ],
+  "python.formatting.blackPath": "brunette"
 }

@@ -44,7 +44,6 @@ class BaseCog(commands.Cog):
         filter: Optional[Callable[[...], bool]] = None,
         filter_method: Optional[Callable[[Cog, ...], bool]] = None,
     ) -> TaskCallableT:
-        print(f'setting up listener {listener} for {func_or_listener}')
 
         if isinstance(func_or_listener, str):
             listener = func_or_listener
@@ -52,12 +51,9 @@ class BaseCog(commands.Cog):
             listener = func_or_listener.__name__
 
         def decorator(func: TaskCallableT):
-            print(f'listener {listener}')
-
             @cls.listener(listener)
             @wraps(func)
             async def wrapper(self, *args, **kwargs):
-                print(f'inside listener {listener}')
                 if filter and filter(*args, **kwargs) is False:
                     self.debug(f'skipping listener {listener}')
                     return

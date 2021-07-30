@@ -11,7 +11,9 @@ REQ_SYNC_TARGETS = $(REQ_OBJECTS:%.in=sync-%)
 REQ_UPGRADE_TARGETS = $(REQ_OBJECTS:%.in=upgrade-%)
 .PHONY: all check clean $(REQ_SYNC_TARGETS) $(REQ_UPGRADE_TARGETS)
 
+all: $(REQ_OBJECTS)
 all: $(REQ_OUTPUTS)
+all: install
 
 %.txt: %.in
 	@pip-compile -v --output-file $@ $<

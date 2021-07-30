@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta
 from functools import cached_property
 from itertools import islice
 from time import mktime, time
 from typing import TYPE_CHECKING, Iterable, Sequence, Set, cast
 
+import discord
 from pytinybeans.pytinybeans import (
     PyTinybeans,
     TinybeanChild,
@@ -14,6 +16,7 @@ from pytinybeans.pytinybeans import (
 )
 
 from welovebot.lib.cog import Cog
+from welovebot.lib.config import JsonConfig
 
 
 class Tinybeans(Cog):
@@ -21,11 +24,22 @@ class Tinybeans(Cog):
         LOGIN: str
         PASSWORD: str
         CHILDREN_IDS: Set[int]
+        CHANNEL: int
+        DB_PATH: str
+
+    @cached_property
+    def db(self) -> JsonConfig:
+        db = JsonConfig(self.config_safe.get('DB_PATH', '/tmp/tinybeans.json'))
+        db.setdefault('seen', {})
+        return db
 
     @cached_property
     def last_sumthing(self) -> int:
-        print((datetime.utcnow() - timedelta(days=1)).timestamp() * 1000)
-        return int((datetime.utcnow() - timedelta(days=0)).timestamp() * 1000)
+        return datetime.utcnow() - timedelta(days=1)
+
+    @cached_property
+    def channel(self) -> discord.TextChannel:
+        return self.bot.get_channel(self.config_safe['CHANNEL'])
 
     @cached_property
     def tinybeans(self) -> PyTinybeans:
@@ -43,12 +57,20 @@ class Tinybeans(Cog):
             c for c in cast(Iterable[TinybeanChild], self.tinybeans.children) if c.id in ids
         )
 
-    @cached_property
+    @property
     def entries(self) -> Iterable[TinybeanEntry]:
         for c in self.children:
-            yield from islice(self.tinybeans.get_entries(c, last=self.last_sumthing), 200)
+            yield from self.tinybeans.get_entries(c, limit=self.last_sumthing)
 
-    @Cog.perodic_task(1)
-    async def periodic_sync(self):
-        for e in self.entries:
-            print(e, e.type, e.blobs.o)
+    @Cog.perodic_task(hours=1)
+    async def periodic_sync(self) -> None:
+        for c in self.children:
+            await self.handle_entries(*self.entries)
+
+    async def handle_entries(self, *entries: TinybeanEntry) -> None:
+        for entry in entries:
+            if str(entry.id) not in self.db['seen']:
+                message = f'{entry.caption}\n{entry.url if not entry.is_text else ""}'.strip()
+                await self.channel.send(message)
+                self.db['seen'] = {**self.db['seen'], **{entry.id: time()}}
+                await asyncio.sleep(0.5)

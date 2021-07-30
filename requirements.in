@@ -1,9 +1,7 @@
-
 discord-py-slash-command~=1.1.2
 flask~=1.1.2
 git+git://github.com/NorthIsUp/pytinybeans#egg=pytinybeans
-# discord.py~=1.7.3
-git+git://github.com/Rapptz/discord.py.git#egg=discord
+git+git://github.com/Rapptz/discord.py.git#egg=discord.py
 inflection~=0.5.1
 redis~=3.5.3
 requests~=2.25.0

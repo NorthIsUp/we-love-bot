@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 import typing
@@ -8,18 +9,19 @@ from dataclasses import dataclass
 from functools import cached_property
 from logging.config import dictConfig
 from os import environ
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     ChainMap,
     ClassVar,
     Dict,
-    Iterable,
-    Mapping,
     Optional,
     Sequence,
     Type,
     Union,
+    cast,
 )
 
 if TYPE_CHECKING:
@@ -29,14 +31,19 @@ logger = logging.getLogger(__name__)
 
 
 class Config(ABC):
+    logging: bool = True
+
     def _log_miss_msg(self, key: str) -> None:
-        logger.debug(f'config miss: {key}')
+        if self.logging:
+            logger.debug(f'config miss: {key}')
 
     def _log_hit_msg(self, key: str) -> None:
-        logger.debug(f'config hit: {key}')
+        if self.logging:
+            logger.debug(f'config hit: {key}')
 
     def _log_default_msg(self, key: str) -> None:
-        logger.debug(f'config default: {key}')
+        if self.logging:
+            logger.debug(f'config default: {key}')
 
     def __getitem__(self, key: str) -> str:
         key = self._key(key)
@@ -48,6 +55,10 @@ class Config(ABC):
         else:
             self._log_hit_msg(key)
             return value
+
+    def __setitem__(self, key: str, value: str) -> None:
+        key = self._key(key)
+        self._setitem(key, value)
 
     def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
         try:
@@ -63,6 +74,10 @@ class Config(ABC):
     @abstractmethod
     def _getitem(self, key: str) -> str:
         """called by __getitem__"""
+
+    def _setitem(self, key: str, value: str) -> None:
+        """called by __setitem__"""
+        raise RuntimeError(f'set item not supported for {self.__class__.__name__}')
 
 
 @dataclass
@@ -116,14 +131,16 @@ class TypedChainConfig(ChainConfig):
     types: Type
 
     def _log_hit_msg(self, key: str) -> None:
-        a = self.types.__annotations__[key]
-        a = a.__name__ if isinstance(a, type) else a
-        logger.debug(f'config hit: {key} (as type {a})')
+        if self.logging:
+            a = self.types.__annotations__[key]
+            a = a.__name__ if isinstance(a, type) else a
+            logger.debug(f'config hit: {key} (as type {a})')
 
     def _log_default_msg(self, key: str) -> None:
-        a = self.types.__annotations__[key]
-        a = a.__name__ if isinstance(a, type) else a
-        logger.debug(f'config default: {key} (as type {a})')
+        if self.logging:
+            a = self.types.__annotations__[key]
+            a = a.__name__ if isinstance(a, type) else a
+            logger.debug(f'config default: {key} (as type {a})')
 
     _simple_type_map: ClassVar[Dict[str, Callable]] = {
         'str': str,
@@ -143,7 +160,13 @@ class TypedChainConfig(ChainConfig):
 
         item = super()._getitem(key)
 
-        if isinstance(annotation, typing._GenericAlias):
+        if isinstance(annotation, str) and '[' in annotation:
+            match = re.match(r'^(?P<origin_name>[\w]+)\[(?P<to_cls_name>\w+)\]$', annotation)
+            assert match, f"no match for '{annotation}'"
+            origin_name = match.group('origin_name').lower()
+            to_cls_type = self._simple_type_map[match.group('to_cls_name')]
+            return self._simple_type_map[origin_name](item, to_cls_type)
+        elif isinstance(annotation, typing._GenericAlias):
             origin_name = annotation.__origin__.__name__
             to_cls_name = annotation.__args__[0].__name__
             to_cls_type = self._simple_type_map[to_cls_name]
@@ -168,6 +191,49 @@ class EnvConfig(PrefixConfig):
 
     def _getitem(self, key: str) -> str:
         return environ[key]
+
+
+@dataclass
+class JsonConfig(Config):
+    path: Path
+    logging: ClassVar[bool] = False
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.path, Path):
+            self.path = Path(self.path)
+
+    @cached_property
+    def json(self) -> Dict[str, Any]:
+        if not self.path.exists():
+            with self.path.open('w') as f:
+                json.dump({}, f)
+
+        with self.path.open() as f:
+            j = json.load(f)
+            if not isinstance(j, dict):
+                raise TypeError('json config must be a dict')
+            return cast(Dict[str, Any], j)
+
+    def _save_json(self) -> None:
+        with self.path.open('w') as f:
+            json.dump(self.json, f)
+
+    def _getitem(self, key: str) -> str:
+        return self.json[key]
+
+    def _setitem(self, key: str, value: str) -> None:
+        self.json[key] = value
+        self._save_json()
+
+    def update(self, *args: Dict[str, Any], **kwargs: Any) -> None:
+        self.json.update(*args, **kwargs)
+        self._save_json()
+
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        if key not in self.json:
+            self.json[key] = default
+            self._save_json()
+        return self.json[key]
 
 
 @dataclass
