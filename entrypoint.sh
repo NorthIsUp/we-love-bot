@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -x
-echo "$1 -- ${@:2}"
+[[ ${#@} == 1 ]] && set - $@
+
+echo "$1 -- ${@:2}" >&2
+
 case "$1" in
 run)
     shift
