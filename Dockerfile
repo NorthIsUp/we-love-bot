@@ -10,5 +10,5 @@ RUN \
 
 COPY welovebot/ welovebot/
 COPY entrypoint.sh ./
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT ["/bin/bash", "-c", "./entrypoint.sh \"$@\"", "--"]
 CMD ["run"]
