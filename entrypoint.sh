@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -x
-case "$@" in
+case "$1" in
 run)
     shift
     python3 welovebot $@
