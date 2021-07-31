@@ -89,6 +89,9 @@ class Tinybeans(Cog):
     async def handle_entries(self, *entries: TinybeanEntry) -> None:
         for entry in entries:
             if not self.seen(entry.id):
+                self.info(
+                    f'posting {"text" if entry.is_text else "file"}: {entry.caption}{" " if entry.caption else ""}{entry.url}'
+                )
                 if entry.is_text:
                     await self.channel.send(entry.caption)
                 else:
