@@ -7,7 +7,17 @@ from functools import cached_property
 from itertools import islice
 from pathlib import Path
 from time import mktime, time
-from typing import TYPE_CHECKING, Dict, Iterable, Sequence, Set, Union, cast
+from types import coroutine
+from typing import (
+    TYPE_CHECKING,
+    AsyncGenerator,
+    Dict,
+    Iterable,
+    Sequence,
+    Set,
+    Union,
+    cast,
+)
 
 import aiohttp
 import discord
@@ -45,30 +55,34 @@ class Tinybeans(Cog):
     def channel(self) -> discord.TextChannel:
         return self.bot.get_channel(self.config_safe['CHANNEL'])
 
-    @cached_property
-    def tinybeans(self) -> PyTinybeans:
+    @property
+    async def tinybeans(self, _cache={}) -> PyTinybeans:
         from pytinybeans import PyTinybeans
 
-        tb = PyTinybeans()
-        tb.login(self.config_safe['LOGIN'], self.config_safe['PASSWORD'])
+        if _cache:
+            return _cache.get('tinybeans')
+
+        tb = _cache.setdefault('tinybeans', PyTinybeans())
+
+        await tb.login(self.config_safe['LOGIN'], self.config_safe['PASSWORD'])
+        assert tb.logged_in
 
         return tb
 
     @cached_property
-    def children(self) -> Sequence[TinybeanChild]:
+    async def children(self) -> Sequence[TinybeanChild]:
         ids = set(int(c) for c in self.config_safe['CHILDREN_IDS'])
-        return tuple(
-            c for c in cast(Iterable[TinybeanChild], self.tinybeans.children) if c.id in ids
-        )
+        tb = await self.tinybeans
+        return tuple(c for c in await tb.children if c.id in ids)
 
-    @property
-    def entries(self) -> Iterable[TinybeanEntry]:
-        for c in self.children:
-            yield from self.tinybeans.get_entries(c, limit=self.last_sumthing)
+    async def entries(self) -> Iterable[TinybeanEntry]:
+        for c in await self.children:
+            async for entry in (await self.tinybeans).get_entries(c, limit=self.last_sumthing):
+                yield entry
 
     @Cog.perodic_task(minutes=15)
     async def periodic_sync(self) -> None:
-        await self.handle_entries(*self.entries)
+        await self.handle_entries(self.entries())
 
     def seen(self, id: Union[str, int], update: bool = True) -> bool:
         id = str(id)
@@ -86,15 +100,16 @@ class Tinybeans(Cog):
             data = io.BytesIO(await resp.read())
             return discord.File(data, Path(url).name)
 
-    async def handle_entries(self, *entries: TinybeanEntry) -> None:
-        for entry in entries:
+    async def handle_entries(self, entries: AsyncGenerator[TinybeanEntry, None]) -> None:
+        async for entry in entries:
             if not self.seen(entry.id):
-                self.info(
-                    f'posting {"text" if entry.is_text else "file"}: {entry.caption}{" " if entry.caption else ""}{entry.url}'
-                )
                 if entry.is_text:
+                    self.info(f'posting text: {entry.caption}')
                     await self.channel.send(entry.caption)
                 else:
+                    self.info(
+                        f'posting file: {entry.caption + " " if entry.caption else ""}{entry.url}'
+                    )
                     file = await self.fetch_url_as_file(entry.url)
                     await self.channel.send(entry.caption, file=file)
 
