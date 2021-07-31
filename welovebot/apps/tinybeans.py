@@ -68,7 +68,7 @@ class Tinybeans(Cog):
         ids = set(int(c) for c in self.config_safe['CHILDREN_IDS'])
         return tuple(c for c in await self.tb.children if c.id in ids)
 
-    async def entries(self) -> Iterable[TinybeanEntry]:
+    async def entries(self) -> AsyncGenerator[TinybeanEntry, None]:
         for c in await self.children:
             async for entry in self.tb.get_entries(c, limit=self.last_sumthing):
                 yield entry
