@@ -62,7 +62,7 @@ class Tinybeans(Cog):
         if _cache:
             return _cache.get('tinybeans')
 
-        tb = _cache.setdefault('tinybeans', PyTinybeans())
+        tb = _cache['tinybeans'] = PyTinybeans()
 
         await tb.login(self.config_safe['LOGIN'], self.config_safe['PASSWORD'])
         assert tb.logged_in
