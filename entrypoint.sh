@@ -3,6 +3,7 @@ set -x
 [[ ${#@} == 3 ]] && set - $3
 
 echo "$1 -- ${@:2}" >&2
+python3 --version
 
 case "$1" in
 run)
