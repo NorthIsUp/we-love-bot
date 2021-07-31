@@ -14,6 +14,7 @@ from typing import (
     AsyncGenerator,
     Dict,
     Iterable,
+    Optional,
     Sequence,
     Set,
     Union,
@@ -43,6 +44,7 @@ class Tinybeans(Cog):
         CHILDREN_IDS: Set[int]
         CHANNEL: int
         DB_PATH: str
+        EMAIL_FORWARDS: Set[str]
 
     @cached_property
     def db(self) -> JsonConfig:
@@ -64,7 +66,7 @@ class Tinybeans(Cog):
         await self.tb.login(self.config_safe['LOGIN'], self.config_safe['PASSWORD'])
         return self.tb.logged_in
 
-    @cached_property
+    @property
     async def children(self) -> Sequence[TinybeanChild]:
         ids = set(int(c) for c in self.config_safe['CHILDREN_IDS'])
         return tuple(c for c in await self.tb.children if c.id in ids)
@@ -89,24 +91,53 @@ class Tinybeans(Cog):
 
         return seen
 
-    async def fetch_url_as_file(self, url):
+    async def fetch_url_as_file(self, url: str):
         async with aiohttp.ClientSession() as session, session.get(url) as resp:
             if resp.status != 200:
                 return await channel.send('Could not download file...')
             data = io.BytesIO(await resp.read())
             return discord.File(data, Path(url).name)
 
-    async def handle_entries(self, entries: AsyncGenerator[TinybeanEntry, None]) -> None:
+    async def handle_entries(
+        self,
+        entries: AsyncGenerator[TinybeanEntry, None],
+    ) -> None:
         async for entry in entries:
             if not self.seen(entry.id):
-                if entry.is_text:
-                    self.info(f'posting text: {entry.caption}')
-                    await self.channel.send(entry.caption)
-                else:
-                    self.info(
-                        f'posting file: {entry.caption + " " if entry.caption else ""}{entry.url}'
-                    )
+                file = None
+                if not entry.is_text:
                     file = await self.fetch_url_as_file(entry.url)
-                    await self.channel.send(entry.caption, file=file)
 
-                await asyncio.sleep(0.5)
+                self.handle_discord_send(entry, file)
+
+                if file:
+                    self.handle_email_forward(file.fp)
+
+    async def handle_discord_send(
+        self,
+        entry: TinybeanEntry,
+        file: Optional[io.BytesIO] = None,
+    ) -> None:
+        if entry.is_text:
+            self.info(f'posting text: {entry.caption}')
+            await self.channel.send(entry.caption)
+        else:
+            self.info(f'posting file: {entry.caption + " " if entry.caption else ""}{entry.url}')
+            file = await self.fetch_url_as_file(entry.url)
+            await self.channel.send(entry.caption, file=file)
+
+        await asyncio.sleep(0.5)
+
+    async def handle_email_forward(
+        self,
+        file: io.BytesIO,
+    ) -> None:
+        import yagmail
+
+        yag = yagmail.SMTP('adam@northisup.com')
+        for receiver in self.config_safe.get('EMAIL_FORWARDS', []):
+            yag.send(
+                to=receiver,
+                subject='Tasty new uploads',
+                attachments=file,
+            )
