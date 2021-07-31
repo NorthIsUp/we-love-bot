@@ -76,7 +76,8 @@ class Tinybeans(Cog):
 
     @Cog.perodic_task(minutes=15)
     async def periodic_sync(self) -> None:
-        await self.login()
+        logged_in = await self.login()
+        self.debug(f'login success? {logged_in}')
         await self.handle_entries(self.entries())
 
     def seen(self, id: Union[str, int], update: bool = True) -> bool:
