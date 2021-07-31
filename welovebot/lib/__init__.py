@@ -1,3 +1,3 @@
 from .cog import Cog
 
-__all__ = [Cog]
+__all__ = ['Cog']

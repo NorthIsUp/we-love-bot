@@ -10,6 +10,7 @@ from functools import cached_property
 from logging.config import dictConfig
 from os import environ
 from pathlib import Path
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -23,6 +24,8 @@ from typing import (
     Union,
     cast,
 )
+
+from welovebot import constants
 
 if TYPE_CHECKING:
     from .bot import Bot
@@ -82,8 +85,8 @@ class Config(ABC):
 
 @dataclass
 class PrefixConfig(Config, ABC):
-    default_prefix: ClassVar[str] = 'WELOVEBOT'
-    default_envvar: ClassVar[str] = 'WELOVEBOT_CONFIG_PREFIX'
+    default_prefix: ClassVar[str] = constants.WELOVEBOT_CONFIG_PREFIX_DEFAULT
+    default_envvar: ClassVar[str] = constants.WELOVEBOT_CONFIG_PREFIX_ENVVAR
 
     def __init__(self, prefix: Optional[str] = None) -> None:
         self.set_prefix(prefix)
@@ -127,7 +130,7 @@ def _as_sequence(to: Type[Union[set, list, tuple]]) -> Callable[[str], Sequence[
 
 
 @dataclass
-class TypedChainConfig(ChainConfig):
+class TypedConfig(Config):
     types: Type
 
     def _log_hit_msg(self, key: str) -> None:
@@ -177,6 +180,11 @@ class TypedChainConfig(ChainConfig):
         return self._simple_type_map[annotation](item)
 
 
+@dataclass
+class TypedChainConfig(TypedConfig, ChainConfig):
+    pass
+
+
 class KeyT(str):
     pass
 
@@ -214,7 +222,18 @@ class JsonConfig(Config):
                 raise TypeError('json config must be a dict')
             return cast(Dict[str, Any], j)
 
-    def _save_json(self) -> None:
+    def __enter__(self) -> JsonConfig:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        self.save()
+
+    def save(self) -> None:
         with self.path.open('w') as f:
             json.dump(self.json, f)
 
@@ -222,17 +241,21 @@ class JsonConfig(Config):
         return self.json[key]
 
     def _setitem(self, key: str, value: str) -> None:
-        self.json[key] = value
-        self._save_json()
+        with self:
+            self.json[key] = value
 
     def update(self, *args: Dict[str, Any], **kwargs: Any) -> None:
-        self.json.update(*args, **kwargs)
-        self._save_json()
+        with self:
+            self.json.update(*args, **kwargs)
+
+    def update_in(self, key: str, *args: Dict[str, Any], **kwargs: Any) -> None:
+        with self:
+            self.json[key].update(*args, **kwargs)
 
     def setdefault(self, key: str, default: Any = None) -> Any:
         if key not in self.json:
-            self.json[key] = default
-            self._save_json()
+            with self:
+                self.json[key] = default
         return self.json[key]
 
 

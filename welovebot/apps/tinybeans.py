@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import io
 from datetime import datetime, timedelta
 from functools import cached_property
 from itertools import islice
+from pathlib import Path
 from time import mktime, time
-from typing import TYPE_CHECKING, Iterable, Sequence, Set, cast
+from typing import TYPE_CHECKING, Dict, Iterable, Sequence, Set, Union, cast
 
+import aiohttp
 import discord
 from pytinybeans.pytinybeans import (
     PyTinybeans,
@@ -30,12 +33,13 @@ class Tinybeans(Cog):
     @cached_property
     def db(self) -> JsonConfig:
         db = JsonConfig(self.config_safe.get('DB_PATH', '/tmp/tinybeans.json'))
-        db.setdefault('seen', {})
+        seen_default: Dict[str, float] = {}
+        db.setdefault('seen', seen_default)
         return db
 
     @cached_property
-    def last_sumthing(self) -> int:
-        return datetime.utcnow() - timedelta(days=1)
+    def last_sumthing(self) -> datetime:
+        return datetime.utcnow() - timedelta(days=15)
 
     @cached_property
     def channel(self) -> discord.TextChannel:
@@ -62,15 +66,33 @@ class Tinybeans(Cog):
         for c in self.children:
             yield from self.tinybeans.get_entries(c, limit=self.last_sumthing)
 
-    @Cog.perodic_task(hours=1)
+    @Cog.perodic_task(minutes=15)
     async def periodic_sync(self) -> None:
-        for c in self.children:
-            await self.handle_entries(*self.entries)
+        await self.handle_entries(*self.entries)
+
+    def seen(self, id: Union[str, int], update: bool = True) -> bool:
+        id = str(id)
+        seen = self.db['seen'].get(id, False)
+
+        if not seen:
+            self.db.update_in('seen', {id: time()})
+
+        return seen
+
+    async def fetch_url_as_file(self, url):
+        async with aiohttp.ClientSession() as session, session.get(url) as resp:
+            if resp.status != 200:
+                return await channel.send('Could not download file...')
+            data = io.BytesIO(await resp.read())
+            return discord.File(data, Path(url).name)
 
     async def handle_entries(self, *entries: TinybeanEntry) -> None:
         for entry in entries:
-            if str(entry.id) not in self.db['seen']:
-                message = f'{entry.caption}\n{entry.url if not entry.is_text else ""}'.strip()
-                await self.channel.send(message)
-                self.db['seen'] = {**self.db['seen'], **{entry.id: time()}}
+            if not self.seen(entry.id):
+                if entry.is_text:
+                    await self.channel.send(entry.caption)
+                else:
+                    file = await self.fetch_url_as_file(entry.url)
+                    await self.channel.send(entry.caption, file=file)
+
                 await asyncio.sleep(0.5)

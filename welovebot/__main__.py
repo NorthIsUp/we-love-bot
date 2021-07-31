@@ -1,5 +1,6 @@
 import sys
 from logging import getLogger
+from os import environ
 from pathlib import Path
 
 # fix the import path
@@ -7,6 +8,7 @@ welovebot_root = Path(__file__).parent
 sys.path.insert(0, str(welovebot_root.parent))
 from argparse import ArgumentParser
 
+from welovebot import constants
 from welovebot.lib.bot import Bot
 from welovebot.lib.config import configure_logging
 
@@ -15,7 +17,13 @@ logger = getLogger(__name__)
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument('--app', dest='apps', nargs='*', action='store', default=['welovebot.apps'])
+    apps_default = [
+        _.strip()
+        for _ in environ.get(
+            constants.WELOVEBOT_APPS_ENVVAR, constants.WELOVEBOT_APPS_DEFAULT
+        ).split(',')
+    ]
+    parser.add_argument('--app', dest='apps', nargs='*', action='store', default=apps_default)
     return parser.parse_args()
 
 
