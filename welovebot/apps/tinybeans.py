@@ -108,10 +108,10 @@ class Tinybeans(Cog):
                 if not entry.is_text:
                     file = await self.fetch_url_as_file(entry.url)
 
-                self.handle_discord_send(entry, file)
+                await self.handle_discord_send(entry, file)
 
                 if file:
-                    self.handle_email_forward(file.fp)
+                    await self.handle_email_forward(file.fp)
 
     async def handle_discord_send(
         self,
