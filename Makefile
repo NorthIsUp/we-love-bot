@@ -42,6 +42,10 @@ pre-commit:
 docker-build: Dockerfile
 	docker build -t $(NAME):$(TAG) -f $< .
 
+docker-build-no-cache: Dockerfile
+	docker build --no-cache -t $(NAME):$(TAG) -f $< .
+
+
 docker-run: docker-build
 	docker run \
 		-e WELOVEBOT__CONFIG_PREFIX=WELOVEBOT \

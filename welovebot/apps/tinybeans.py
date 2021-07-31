@@ -60,6 +60,7 @@ class Tinybeans(Cog):
         return self.bot.get_channel(self.config_safe['CHANNEL'])
 
     async def login(self) -> bool:
+        self.info(f'Logging in... (currently logged in? {self.tb.logged_in})')
         await self.tb.login(self.config_safe['LOGIN'], self.config_safe['PASSWORD'])
         return self.tb.logged_in
 
