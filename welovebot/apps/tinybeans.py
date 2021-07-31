@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
 from itertools import islice
@@ -32,7 +33,10 @@ from welovebot.lib.cog import Cog
 from welovebot.lib.config import JsonConfig
 
 
+@dataclass
 class Tinybeans(Cog):
+    tb: PyTinybeans = field(default_factory=PyTinybeans)
+
     class Config:
         LOGIN: str
         PASSWORD: str
@@ -55,33 +59,23 @@ class Tinybeans(Cog):
     def channel(self) -> discord.TextChannel:
         return self.bot.get_channel(self.config_safe['CHANNEL'])
 
-    @property
-    async def tinybeans(self, _cache={}) -> PyTinybeans:
-        from pytinybeans import PyTinybeans
-
-        if _cache:
-            return _cache.get('tinybeans')
-
-        tb = _cache['tinybeans'] = PyTinybeans()
-
-        await tb.login(self.config_safe['LOGIN'], self.config_safe['PASSWORD'])
-        assert tb.logged_in
-
-        return tb
+    async def login(self) -> bool:
+        await self.tb.login(self.config_safe['LOGIN'], self.config_safe['PASSWORD'])
+        return self.tb.logged_in
 
     @cached_property
     async def children(self) -> Sequence[TinybeanChild]:
         ids = set(int(c) for c in self.config_safe['CHILDREN_IDS'])
-        tb = await self.tinybeans
-        return tuple(c for c in await tb.children if c.id in ids)
+        return tuple(c for c in await self.tb.children if c.id in ids)
 
     async def entries(self) -> Iterable[TinybeanEntry]:
         for c in await self.children:
-            async for entry in (await self.tinybeans).get_entries(c, limit=self.last_sumthing):
+            async for entry in self.tb.get_entries(c, limit=self.last_sumthing):
                 yield entry
 
     @Cog.perodic_task(minutes=15)
     async def periodic_sync(self) -> None:
+        await self.login()
         await self.handle_entries(self.entries())
 
     def seen(self, id: Union[str, int], update: bool = True) -> bool:
