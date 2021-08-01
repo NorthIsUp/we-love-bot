@@ -5,31 +5,14 @@ import io
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
-from itertools import islice
 from pathlib import Path
-from time import mktime, time
-from types import coroutine
-from typing import (
-    TYPE_CHECKING,
-    AsyncGenerator,
-    Dict,
-    Iterable,
-    Optional,
-    Sequence,
-    Set,
-    Union,
-    cast,
-)
+from time import time
+from typing import AsyncGenerator, Dict, Optional, Sequence, Set, Union
 
 import aiohttp
 import asyncstdlib as a
 import discord
-from pytinybeans.pytinybeans import (
-    PyTinybeans,
-    TinybeanChild,
-    TinybeanEntry,
-    TinybeanJournal,
-)
+from pytinybeans.pytinybeans import PyTinybeans, TinybeanChild, TinybeanEntry
 
 from welovebot.lib.cog import Cog
 from welovebot.lib.config import JsonConfig
@@ -110,7 +93,7 @@ class Tinybeans(Cog):
                     file = await self.fetch_url_as_file(entry.url)
 
                 await asyncio.gather(
-                    # self.handle_discord_send(entry, file),
+                    self.handle_discord_send(entry, file),
                     self.handle_email_forward(entry, file),
                     self.handle_email_forward(entry, file),
                 )
