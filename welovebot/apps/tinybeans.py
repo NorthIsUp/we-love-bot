@@ -22,6 +22,7 @@ from typing import (
 )
 
 import aiohttp
+import asyncstdlib as a
 import discord
 from pytinybeans.pytinybeans import (
     PyTinybeans,
@@ -45,6 +46,7 @@ class Tinybeans(Cog):
         CHANNEL: int
         DB_PATH: str
         EMAIL_FORWARDS: Set[str]
+        EMAIL_FORWARDS_FROM_ADDR: str
 
     @cached_property
     def db(self) -> JsonConfig:
@@ -66,7 +68,7 @@ class Tinybeans(Cog):
         await self.tb.login(self.config_safe['LOGIN'], self.config_safe['PASSWORD'])
         return self.tb.logged_in
 
-    @property
+    @a.cached_property
     async def children(self) -> Sequence[TinybeanChild]:
         ids = set(int(c) for c in self.config_safe['CHILDREN_IDS'])
         return tuple(c for c in await self.tb.children if c.id in ids)
@@ -91,12 +93,11 @@ class Tinybeans(Cog):
 
         return seen
 
-    async def fetch_url_as_file(self, url: str):
+    async def fetch_url_as_file(self, url: str) -> io.BytesIO:
         async with aiohttp.ClientSession() as session, session.get(url) as resp:
             if resp.status != 200:
                 return await channel.send('Could not download file...')
-            data = io.BytesIO(await resp.read())
-            return discord.File(data, Path(url).name)
+            return io.BytesIO(await resp.read())
 
     async def handle_entries(
         self,
@@ -108,10 +109,11 @@ class Tinybeans(Cog):
                 if not entry.is_text:
                     file = await self.fetch_url_as_file(entry.url)
 
-                await self.handle_discord_send(entry, file)
-
-                if file:
-                    await self.handle_email_forward(file.fp)
+                await asyncio.gather(
+                    # self.handle_discord_send(entry, file),
+                    self.handle_email_forward(entry, file),
+                    self.handle_email_forward(entry, file),
+                )
 
     async def handle_discord_send(
         self,
@@ -123,21 +125,50 @@ class Tinybeans(Cog):
             await self.channel.send(entry.caption)
         else:
             self.info(f'posting file: {entry.caption + " " if entry.caption else ""}{entry.url}')
-            file = await self.fetch_url_as_file(entry.url)
+            file = discord.File(file, Path(entry.url).name)
             await self.channel.send(entry.caption, file=file)
 
         await asyncio.sleep(0.5)
 
+    async def handle_meural_forward(
+        self,
+        entry: TinybeanEntry,
+        file: Optional[io.BytesIO] = None,
+    ) -> None:
+        """send the entry to a meural frame"""
+        if file is None:
+            return
+
     async def handle_email_forward(
         self,
-        file: io.BytesIO,
+        entry: TinybeanEntry,
+        file: Optional[io.BytesIO] = None,
     ) -> None:
-        import yagmail
+        if (
+            file is None
+            or not entry.is_photo
+            or not (apikey := self.config.get('SENDGRID_API_KEY', ''))
+            or not (receivers := self.config_safe.get('EMAIL_FORWARDS', []))
+            or not (from_addr := self.config_safe.get('EMAIL_FORWARDS_FROM_ADDR', ''))
+        ):
+            return
 
-        yag = yagmail.SMTP('adam@northisup.com')
-        for receiver in self.config_safe.get('EMAIL_FORWARDS', []):
-            yag.send(
-                to=receiver,
-                subject='Tasty new uploads',
-                attachments=file,
-            )
+        import smtplib
+        from email.mime.image import MIMEImage
+        from email.mime.multipart import MIMEMultipart
+
+        from aiosmtplib import SMTP
+
+        message = MIMEMultipart()
+        message['From'] = from_addr
+        message['Subject'] = 'Hello World!'
+        message.attach(MIMEImage(file.getvalue()))
+
+        smtp_client = SMTP(hostname='smtp.sendgrid.net', port=587)
+        await smtp_client.connect(username='apikey', password=apikey, start_tls=True)
+
+        for receiver in receivers:
+            self.info(f'forwarding to {receiver}')
+            message['To'] = receiver
+            await smtp_client.send_message(message)
+        await smtp_client.quit()
