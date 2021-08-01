@@ -213,9 +213,6 @@ class BaseCog(commands.Cog):
 class Cog(BaseCog):
     bot: Bot
 
-    class Config:
-        pass
-
     @cached_property
     def name(self) -> str:
         return self.__class__.__name__
@@ -226,8 +223,14 @@ class Cog(BaseCog):
 
     @cached_property
     def config_safe(self) -> TypedChainConfig:
+        if not (Config := getattr(self, 'Config', None)):
+            raise AttributeError(f"class '{self.name}' is miss a 'Config'")
+
         try:
-            return TypedChainConfig((self.cog_config, self.bot_config), self.Config)
+            return TypedChainConfig(
+                configs=(self.cog_config, self.bot_config),
+                types=Config,
+            )
         except Exception as e:
             self.exception(e)
             raise
