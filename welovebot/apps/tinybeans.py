@@ -111,7 +111,7 @@ class Tinybeans(Cog):
             file = discord.File(file, Path(entry.url).name)
             await self.channel.send(entry.caption, file=file)
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.01)
 
     async def handle_meural_forward(
         self,
