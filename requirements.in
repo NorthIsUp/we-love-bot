@@ -6,6 +6,7 @@ flask~=1.1.2
 git+git://github.com/NorthIsUp/pytinybeans#egg=pytinybeans
 git+git://github.com/Rapptz/discord.py.git#egg=discord.py
 inflection~=0.5.1
+ipython~=7.26.0
 redis~=3.5.3
 requests~=2.25.0
 toolz~=0.11.0

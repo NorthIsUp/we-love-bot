@@ -9,7 +9,7 @@ REQ_OBJECTS = $(wildcard *.in)
 REQ_OUTPUTS = $(REQ_OBJECTS:.in=.txt)
 REQ_SYNC_TARGETS = $(REQ_OBJECTS:%.in=sync-%)
 REQ_UPGRADE_TARGETS = $(REQ_OBJECTS:%.in=upgrade-%)
-.PHONY: all check clean $(REQ_SYNC_TARGETS) $(REQ_UPGRADE_TARGETS)
+.PHONY: all check clean dockerenv $(REQ_SYNC_TARGETS) $(REQ_UPGRADE_TARGETS)
 
 all: $(REQ_OBJECTS)
 all: $(REQ_OUTPUTS)
@@ -38,6 +38,17 @@ install: $(REQ_OUTPUTS)
 pre-commit:
 	pre-commit install
 
+dockerenv: .envrc
+	rm dockerenv
+	env | grep 'NORTHISBOT' \
+		| gawk ' \
+			/^NORTHISBOT/ {print $$0} \
+			/^export/ {print $$2} \
+		' .envrc - \
+		| sort -u \
+		> dockerenv
+	cat dockerenv
+
 ## Docker
 docker-build: Dockerfile
 	docker build -t $(NAME):$(TAG) -f $< .
@@ -45,13 +56,11 @@ docker-build: Dockerfile
 docker-build-no-cache: Dockerfile
 	docker build --no-cache -t $(NAME):$(TAG) -f $< .
 
-
-docker-run: docker-build
+docker-run: docker-build dockerenv
 	docker run \
+		--env-file dockerenv \
 		-e WELOVEBOT__CONFIG_PREFIX=WELOVEBOT \
 		-e WELOVEBOT__DISCORD_TOKEN=${WELOVEBOT__DISCORD_TOKEN} \
-		-e WELOVEBOT__INCOMING_WEB_HOOKS__HOST=0.0.0.0 \
-		-e WELOVEBOT__INCOMING_WEB_HOOKS__PORT=8080 \
 		-p 8080:80 \
 		$(NAME):$(TAG)
 
