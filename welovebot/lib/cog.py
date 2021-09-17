@@ -29,7 +29,6 @@ from discord.ext import commands
 from discord_slash import cog_ext
 from redis import StrictRedis
 
-from welovebot.lib.cog import Cog
 from welovebot.lib.config import JsonConfig
 
 from .config import BotConfig, ChainConfig, CogConfig
