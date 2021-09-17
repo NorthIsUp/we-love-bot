@@ -12,4 +12,4 @@ class Kaymbu(WebCog):
     @WebCog.route('POST', '/new_post')
     async def foo(self, request: Request) -> Response:
         print(request.__dict__)
-        return Response(text='hello there')
+        return Response(text='hello there', status=400)
