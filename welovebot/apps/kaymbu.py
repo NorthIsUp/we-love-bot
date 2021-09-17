@@ -9,7 +9,7 @@ class Kaymbu(WebCog):
     class Config:
         pass
 
-    @WebCog.route('GET', '/new_post')
+    @WebCog.route('POST', '/new_post')
     async def foo(self, request: Request) -> Response:
         print(request.__dict__)
         return Response(text='hello there')
