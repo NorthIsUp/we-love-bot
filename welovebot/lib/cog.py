@@ -2,11 +2,24 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from ast import Call
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property, wraps
+from multiprocessing import context
 from time import time
-from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Awaitable,
+    Callable,
+    List,
+    Optional,
+    Protocol,
+    Type,
+    Union,
+    cast,
+)
 
 from discord.ext import commands
 from discord_slash import cog_ext
@@ -279,3 +292,141 @@ class RedisCog(Cog):
     async def on_ready(self):
         self.bot.send
         self.redis.keys()
+
+
+from __future__ import annotations
+
+import asyncio
+import io
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from functools import cached_property
+from pathlib import Path
+from time import time
+from typing import AsyncGenerator, Dict, Optional, Sequence, Set, Union
+
+import aiohttp
+import asyncstdlib as a
+import discord
+from pytinybeans.pytinybeans import PyTinybeans, TinybeanChild, TinybeanEntry
+
+from welovebot.lib.cog import Cog
+from welovebot.lib.config import JsonConfig
+
+
+@dataclass
+class ImageHandlingCog(Cog):
+    @dataclass
+    class IncompleteHandling(RuntimeError):
+        """failed to fully handle the image"""
+
+        url: str
+
+    class Config:
+        CHANNEL: int
+        DB_PATH: str
+        EMAIL_FORWARDS: Set[str]
+        EMAIL_FORWARDS_FROM_ADDR: str
+
+    class HandlerType(Protocol):
+        def __call__(self, url: str, file: io.BytesIO, caption: Optional[str] = None) -> None:
+            ...
+
+    handlers: List[HandlerType] = field(default_factory=list)
+
+    def __post_init__(self):
+        for handler in self.config_safe.get('HANDLERS', ['discord_channel']):
+            self.handlers.append(getattr(self, f'_handle_{handler}'))
+
+    @cached_property
+    def db(self) -> JsonConfig:
+        db = JsonConfig(self.config_safe.get('DB_PATH', '/tmp/tinybeans.json'))
+        seen_default: Dict[str, float] = {}
+        db.setdefault('seen', seen_default)
+        return db
+
+    @cached_property
+    def channel(self) -> discord.abc.TextChannel:
+        channel = self.bot.get_channel(self.config_safe['CHANNEL'])
+        assert channel
+        return cast(discord.TextChannel, channel)
+
+    @contextmanager
+    def seen(self, id: Union[str, int], update: bool = True) -> bool:
+        id = str(id)
+        seen = self.db['seen'].get(id, False)
+
+        try:
+            yield seen
+        except ImageHandlingCog.IncompleteHandling:
+            self.warning(f'incomplete processing {id}')
+        else:
+            if not seen:
+                self.db.update_in('seen', {id: time()})
+
+    async def fetch_url_as_file(self, url: str) -> io.BytesIO:
+        async with aiohttp.ClientSession() as session, session.get(url) as resp:
+            if resp.status != 200:
+                await self.channel.send('Could not download file...')
+                raise ImageHandlingCog.IncompleteHandling(url)
+            return io.BytesIO(await resp.read())
+
+    async def handle_image_url(self, url: str, caption: Optional[str] = None):
+        with self.seen(url) as seen:
+            if not seen:
+                file = await self.fetch_url_as_file(url)
+
+                for handler in self.handlers:
+                    handler(caption=caption, file=file, url=url)
+
+    async def _handle_discord_channel(
+        self,
+        url: str,
+        file: io.BytesIO,
+        caption: Optional[str] = None,
+    ) -> None:
+        self.info(f'posting file: {caption + " " if caption else ""}{url}')
+        await self.channel.send(caption, file=discord.File(file, Path(url).name))
+        await asyncio.sleep(0.01)
+
+    async def _handle_meural_forward(
+        self,
+        url: str,
+        file: io.BytesIO,
+        caption: Optional[str] = None,
+    ) -> None:
+        """send the entry to a meural frame"""
+        if file is None:
+            return
+
+    async def _handle_email_forward(
+        self,
+        url: str,
+        file: io.BytesIO,
+        caption: Optional[str] = None,
+    ) -> None:
+        if (
+            url is None
+            or file is None
+            or not (apikey := self.config.get('SENDGRID_API_KEY', ''))
+            or not (recipients := self.config_safe.get('EMAIL_FORWARDS', []))
+            or not (from_addr := self.config_safe.get('EMAIL_FORWARDS_FROM_ADDR', ''))
+        ):
+            return
+
+        from email.mime.image import MIMEImage
+        from email.mime.multipart import MIMEMultipart
+
+        from aiosmtplib import SMTP
+
+        message = MIMEMultipart()
+        message['From'] = from_addr
+        message['Subject'] = 'Hello World!'
+        message.attach(MIMEImage(file.getvalue()))
+
+        self.info(f'forwarding to {recipients}')
+        smtp_client = SMTP(hostname='smtp.sendgrid.net', port=587)
+
+        await smtp_client.connect(username='apikey', password=apikey, start_tls=True)
+        await smtp_client.send_message(message, recipients=recipients)
+        await smtp_client.quit()

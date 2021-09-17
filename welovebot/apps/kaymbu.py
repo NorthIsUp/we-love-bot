@@ -54,6 +54,6 @@ class Kaymbu(WebCog):
         entry_url: str,
     ) -> None:
         self.info(f'posting file: {entry_url}')
-        file = self.fetch_url_as_file(entry_url)
+        file = await self.fetch_url_as_file(entry_url)
         await self.channel.send(file=discord.File(file, Path(entry_url).name))
         await asyncio.sleep(0.01)
