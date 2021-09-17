@@ -14,6 +14,7 @@ from typing import (
     Any,
     Awaitable,
     Callable,
+    ClassVar,
     Dict,
     List,
     Optional,
@@ -232,6 +233,7 @@ class BaseCog(commands.Cog):
 @dataclass
 class Cog(BaseCog):
     bot: Bot
+    logger: ClassVar(logging.Logger) = None
 
     @cached_property
     def name(self) -> str:
@@ -267,24 +269,30 @@ class Cog(BaseCog):
     def bot_config(self) -> BaseConfig:
         return BotConfig(self.bot)
 
-    @cached_property
-    def logger(self) -> logging.Logger:
-        return logging.getLogger(self.__class__.__module__)
+    @classmethod
+    def _logger(cls) -> logging.Logger:
+        cls.logger = cls.logger or logging.getLogger(cls.__module__)
+        return cls.logger
 
-    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        self.logger.debug(msg, *args, **kwargs)
+    @classmethod
+    def debug(cls, msg: str, *args: Any, **kwargs: Any) -> None:
+        cls._logger().debug(msg, *args, **kwargs)
 
-    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        self.logger.info(msg, *args, **kwargs)
+    @classmethod
+    def info(cls, msg: str, *args: Any, **kwargs: Any) -> None:
+        cls._logger().info(msg, *args, **kwargs)
 
-    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        self.logger.warning(msg, *args, **kwargs)
+    @classmethod
+    def warning(cls, msg: str, *args: Any, **kwargs: Any) -> None:
+        cls._logger().warning(msg, *args, **kwargs)
 
-    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        self.logger.error(msg, *args, **kwargs)
+    @classmethod
+    def error(cls, msg: str, *args: Any, **kwargs: Any) -> None:
+        cls._logger().error(msg, *args, **kwargs)
 
-    def exception(self, msg: Union[str, Exception], *args, **kwargs) -> None:
-        self.logger.exception(msg, *args, **kwargs)
+    @classmethod
+    def exception(cls, msg: Union[str, Exception], *args, **kwargs) -> None:
+        cls._logger().exception(msg, *args, **kwargs)
 
 
 @dataclass

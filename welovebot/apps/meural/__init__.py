@@ -24,7 +24,7 @@ class Meural(Cog):
     meural: MeuralApi = MeuralApi()
 
     def __post_init__(self):
-        self.meural.logger = self.logger
+        self.meural.logger = self._logger()
 
     @Cog.task
     async def setup(self):
