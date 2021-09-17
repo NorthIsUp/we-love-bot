@@ -1,4 +1,4 @@
-import imp
+import asyncio
 import io
 import re
 from functools import cached_property
@@ -25,6 +25,7 @@ class Kaymbu(WebCog):
 
     @WebCog.route('POST', '/new_post')
     async def new_post(self, request: Request) -> Response:
+        """accepts payload of email headers, most importantly 'Body'"""
         status = OK
         if request.has_body:
             params = await request.post()
