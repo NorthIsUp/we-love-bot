@@ -20,6 +20,9 @@ from welovebot.lib.web import WebCog
 class EmailImages(WebCog):
     url_root = 'email_images'
 
+    class Config:
+        pass
+
     @dataclass
     class Params:
         channel: int
