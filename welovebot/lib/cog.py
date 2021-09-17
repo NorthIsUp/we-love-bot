@@ -1,29 +1,36 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
-from ast import Call
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from functools import cached_property, wraps
-from multiprocessing import context
+from pathlib import Path
 from time import time
 from typing import (
     TYPE_CHECKING,
     Awaitable,
     Callable,
+    Dict,
     List,
     Optional,
     Protocol,
+    Set,
     Type,
     Union,
     cast,
 )
 
+import aiohttp
+import discord
 from discord.ext import commands
 from discord_slash import cog_ext
 from redis import StrictRedis
+
+from welovebot.lib.cog import Cog
+from welovebot.lib.config import JsonConfig
 
 from .config import BotConfig, ChainConfig, CogConfig
 from .config import Config as BaseConfig
@@ -292,26 +299,6 @@ class RedisCog(Cog):
     async def on_ready(self):
         self.bot.send
         self.redis.keys()
-
-
-from __future__ import annotations
-
-import asyncio
-import io
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from functools import cached_property
-from pathlib import Path
-from time import time
-from typing import AsyncGenerator, Dict, Optional, Sequence, Set, Union
-
-import aiohttp
-import asyncstdlib as a
-import discord
-from pytinybeans.pytinybeans import PyTinybeans, TinybeanChild, TinybeanEntry
-
-from welovebot.lib.cog import Cog
-from welovebot.lib.config import JsonConfig
 
 
 @dataclass
