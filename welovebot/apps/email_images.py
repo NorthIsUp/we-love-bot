@@ -34,13 +34,16 @@ class EmailImages(WebCog):
 
         @classmethod
         def from_params(cls, params: Dict[str, Union[bytes, int, str]]):
-            body = body.decode() if isinstance(body := params['body'], bytes) else body
-            pattern = (
-                pattern.decode() if isinstance(pattern := params['pattern'], bytes) else pattern
-            )
-            assert isinstance(params['channel'], int)
+            kwargs = {}
+            for name, dst in (
+                ('body', str),
+                ('pattern', str),
+                ('channel', int),
+            ):
+                p = params[name]
+                kwargs[name] = dst(p.decode() if isinstance(p, bytes) else p)
 
-            return cls(channel=params['channel'], pattern=pattern, body=body)
+            return cls(**kwargs)
 
     @WebCog.route('POST', '/handle_body')
     async def handle_body(self, request: Request) -> Response:
