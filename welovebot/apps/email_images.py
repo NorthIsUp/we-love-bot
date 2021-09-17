@@ -58,6 +58,7 @@ class EmailImages(WebCog):
             else:
                 for url in self.parse_body(params.body, params.pattern):
                     try:
+                        self.info(f'handling url {url}')
                         await self.handle_discord_send(url, channel)
                         response[url] = OK
                     except Exception:
