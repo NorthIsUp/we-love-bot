@@ -56,7 +56,6 @@ class EmailImages(WebCog):
                 response['status'] = BAD_REQUEST
             else:
                 urls = self.parse_body(params.body, params.pattern)
-                self.info(str(urls))
                 for url in self.parse_body(params.body, params.pattern):
                     try:
                         self.info(f'handling url {url}')
@@ -72,6 +71,7 @@ class EmailImages(WebCog):
 
     @classmethod
     def parse_body(cls, body: str, pattern: str) -> List[str]:
+        self.info(f'pattern: {repr(pattern)}')
         return re.findall(pattern, body) or []
 
     async def fetch_url_as_file(self, url: str) -> io.BytesIO:
