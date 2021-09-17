@@ -17,26 +17,27 @@ from aiohttp.web import Request, Response
 from welovebot.lib.web import WebCog
 
 
-@dataclass
-class EmailImagesParams:
-    channel: int
-    pattern: str
-    body: str
-
-    def __post_init__(self):
-        self.channel = int(self.channel)
-
-    @classmethod
-    def from_params(cls, params: Dict[str, Union[bytes, int, str]]):
-        body = body.decode() if isinstance(body := params['body'], bytes) else body
-        pattern = pattern.decode() if isinstance(pattern := params['pattern'], bytes) else pattern
-        assert isinstance(params['channel'], int)
-
-        return cls(channel=params['channel'], pattern=pattern, body=body)
-
-
 class EmailImages(WebCog):
     url_root = 'email_images'
+
+    @dataclass
+    class Params:
+        channel: int
+        pattern: str
+        body: str
+
+        def __post_init__(self):
+            self.channel = int(self.channel)
+
+        @classmethod
+        def from_params(cls, params: Dict[str, Union[bytes, int, str]]):
+            body = body.decode() if isinstance(body := params['body'], bytes) else body
+            pattern = (
+                pattern.decode() if isinstance(pattern := params['pattern'], bytes) else pattern
+            )
+            assert isinstance(params['channel'], int)
+
+            return cls(channel=params['channel'], pattern=pattern, body=body)
 
     @WebCog.route('POST', '/handle_body')
     async def handle_body(self, request: Request) -> Response:
@@ -45,7 +46,7 @@ class EmailImages(WebCog):
         response: Dict[str, int] = {'status': OK}
 
         if request.has_body:
-            params = EmailImagesParams.from_params(await request.post())
+            params = EmailImages.Params.from_params(await request.post())
             if (channel := self.bot.get_channel(params.channel)) is None:
                 response['status'] = BAD_REQUEST
             else:
