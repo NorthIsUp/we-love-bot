@@ -48,7 +48,6 @@ class EmailImages(WebCog):
     @WebCog.route('POST', '/handle_body')
     async def handle_body(self, request: Request) -> Response:
         """accepts payload of email headers, most importantly 'Body'"""
-
         response: Dict[str, int] = {'status': OK}
 
         if request.has_body:
@@ -56,6 +55,8 @@ class EmailImages(WebCog):
             if (channel := self.bot.get_channel(params.channel)) is None:
                 response['status'] = BAD_REQUEST
             else:
+                urls = self.parse_body(params.body, params.pattern)
+                self.info(urls)
                 for url in self.parse_body(params.body, params.pattern):
                     try:
                         self.info(f'handling url {url}')
