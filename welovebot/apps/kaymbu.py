@@ -1,10 +1,13 @@
 import asyncio
 import io
+import json
 import re
 from functools import cached_property
 from http.client import BAD_REQUEST, OK
+from os import stat
 from pathlib import Path
-from typing import List, Union
+from typing import Dict, List, Union
+from xmlrpc.client import SERVER_ERROR
 
 import aiohttp
 import discord
@@ -26,18 +29,23 @@ class Kaymbu(WebCog):
     @WebCog.route('POST', '/new_post')
     async def new_post(self, request: Request) -> Response:
         """accepts payload of email headers, most importantly 'Body'"""
-        status = OK
+
+        response: Dict[str, int] = {'status': OK}
+
         if request.has_body:
             params = await request.post()
 
             for url in self.parse_body(params['Body']):
-                await self.handle_discord_send(url)
+                try:
+                    await self.handle_discord_send(url)
+                    response[url] = OK
+                except Exception:
+                    response['status'] = response[url] = SERVER_ERROR
 
         else:
-            status = BAD_REQUEST
+            response['status'] = BAD_REQUEST
 
-        status = BAD_REQUEST
-        return Response(text='hello there', status=status)
+        return Response(text=json.dumps(response), status=response['status'])
 
     @classmethod
     def parse_body(cls, body: Union[str, bytes]) -> List[str]:
