@@ -24,13 +24,12 @@ class Kaymbu(WebCog):
 
     @WebCog.route('POST', '/new_post')
     async def new_post(self, request: Request) -> Response:
-        print(request.__dict__)
         status = OK
         if request.has_body:
             params = await request.post()
 
             for url in self.parse_body(params['Body']):
-                self.handle_discord_send(url)
+                await self.handle_discord_send(url)
 
         else:
             status = BAD_REQUEST
