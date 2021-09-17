@@ -15,7 +15,7 @@ class Kaymbu(WebCog):
     async def foo(self, request: Request) -> Response:
         print(request.__dict__)
         status = OK
-        if request.has_body():
+        if request.has_body:
             body = await request.read()
             print(body)
         else:
