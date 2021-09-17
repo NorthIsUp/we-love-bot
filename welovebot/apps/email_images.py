@@ -56,7 +56,7 @@ class EmailImages(WebCog):
                 response['status'] = BAD_REQUEST
             else:
                 urls = self.parse_body(params.body, params.pattern)
-                self.info(urls)
+                self.info(str(urls))
                 for url in self.parse_body(params.body, params.pattern):
                     try:
                         self.info(f'handling url {url}')
