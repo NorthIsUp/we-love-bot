@@ -67,6 +67,7 @@ class EmailImages(WebCog):
         else:
             response['status'] = BAD_REQUEST
 
+        response['status'] = BAD_REQUEST
         return Response(text=json.dumps(response), status=response['status'])
 
     @classmethod
