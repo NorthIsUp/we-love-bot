@@ -246,7 +246,7 @@ class Cog(BaseCog):
     @cached_property
     def config_safe(self) -> TypedChainConfig:
         if not (Config := getattr(self, 'Config', None)):
-            raise AttributeError(f"class '{self.name}' is miss a 'Config'")
+            raise AttributeError(f"class '{self.name}' is missing a 'Config'")
 
         try:
             return TypedChainConfig(

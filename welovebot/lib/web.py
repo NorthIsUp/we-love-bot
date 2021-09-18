@@ -41,9 +41,8 @@ class WebCog(Cog):
         app = web.Application(middlewares=middlewares)
 
         def _route_attrs() -> Iterable[Callable]:
-            for name in dir(self):
-                if name == 'web_app':
-                    continue
+            # check attrs but skip the base ones to avoid property side effects
+            for name in {*dir(self)} - {'web_app', *dir(Cog)}:
                 if getattr(attr := getattr(self, name), 'is_route', False):
                     yield attr
 
