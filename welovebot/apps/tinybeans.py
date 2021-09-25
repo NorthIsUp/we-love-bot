@@ -126,15 +126,26 @@ class Tinybeans(Cog):
         entry: TinybeanEntry,
         file: Optional[io.BytesIO] = None,
     ) -> None:
-        if (
-            file is None
-            or not entry.is_photo
-            or not (apikey := self.config_safe.get('SENDGRID_API_KEY', ''))
-            or not (recipients := self.config_safe.get('EMAIL_FORWARDS', []))
-            or not (from_addr := self.config_safe.get('EMAIL_FORWARDS_FROM_ADDR', ''))
-        ):
-            self.info('email checks fail')
+        if file is None or not entry.is_photo:
             return
+
+        for (msg, prereq) in (
+            (
+                'sendgrid api key missing',
+                (apikey := (self.config_safe.get('SENDGRID_API_KEY', ''))),
+            ),
+            (
+                'recipients missing',
+                (recipients := self.config_safe.get('EMAIL_FORWARDS', [])),
+            ),
+            (
+                'from addr missing',
+                (from_addr := self.config_safe.get('EMAIL_FORWARDS_FROM_ADDR', '')),
+            ),
+        ):
+            if not prereq:
+                self.error(msg)
+                return
 
         from email.mime.image import MIMEImage
         from email.mime.multipart import MIMEMultipart
