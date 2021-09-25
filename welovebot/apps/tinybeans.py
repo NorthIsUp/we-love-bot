@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
@@ -61,7 +62,7 @@ class Tinybeans(Cog):
             async for entry in self.tb.get_entries(c, limit=self.last_sumthing):
                 yield entry
 
-    @Cog.perodic_task(minutes=15)
+    @Cog.perodic_task(minutes=os.environ.get('TINYBEANS_INTERVAL', 15))
     async def periodic_sync(self) -> None:
         logged_in = await self.login()
         self.debug(f'login success? {logged_in}')
