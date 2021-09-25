@@ -31,12 +31,13 @@ def parse_args():
             constants.WELOVEBOT_APPS_ENVVAR, constants.WELOVEBOT_APPS_DEFAULT
         ).split(',')
     ]
-    parser.add_argument('--app', dest='apps', nargs='*', action='store', default=apps_default)
+    parser.add_argument('--app', dest='apps', nargs='*', action='extend', default=apps_default)
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    print(args.apps)
 
     try:
         configure_logging()
