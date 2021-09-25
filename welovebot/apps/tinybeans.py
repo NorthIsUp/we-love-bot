@@ -95,7 +95,6 @@ class Tinybeans(Cog):
                 await asyncio.gather(
                     self.handle_discord_send(entry, file),
                     self.handle_email_forward(entry, file),
-                    self.handle_email_forward(entry, file),
                 )
 
     async def handle_discord_send(
@@ -130,10 +129,11 @@ class Tinybeans(Cog):
         if (
             file is None
             or not entry.is_photo
-            or not (apikey := self.config.get('SENDGRID_API_KEY', ''))
+            or not (apikey := self.config_safe.get('SENDGRID_API_KEY', ''))
             or not (recipients := self.config_safe.get('EMAIL_FORWARDS', []))
             or not (from_addr := self.config_safe.get('EMAIL_FORWARDS_FROM_ADDR', ''))
         ):
+            self.info('email checks fail')
             return
 
         from email.mime.image import MIMEImage
