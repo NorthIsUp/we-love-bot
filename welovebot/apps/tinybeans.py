@@ -13,6 +13,7 @@ from typing import AsyncGenerator, Dict, Optional, Sequence, Set, Union
 import aiohttp
 import asyncstdlib as a
 import discord
+from aiosmtplib import SMTP
 from pytinybeans.pytinybeans import PyTinybeans, TinybeanChild, TinybeanEntry
 
 from welovebot.lib.cog import Cog
@@ -122,6 +123,15 @@ class Tinybeans(Cog):
         if file is None:
             return
 
+    @a.cached_property
+    async def _smtp_client(self) -> SMTP:
+        apikey = self.config_safe['SENDGRID_API_KEY']
+
+        smtp_client = SMTP(hostname='smtp.sendgrid.net', port=587)
+        await smtp_client.connect(username='apikey', password=apikey, start_tls=True)
+
+        return smtp_client
+
     async def handle_email_forward(
         self,
         entry: TinybeanEntry,
@@ -131,7 +141,7 @@ class Tinybeans(Cog):
             self.info('invalid photo for email send')
             return
 
-        if apikey := (self.config_safe.get('SENDGRID_API_KEY', '')):
+        if self.config_safe.get('SENDGRID_API_KEY', ''):
             self.error('sendgrid api key missing')
             return
 
@@ -146,16 +156,10 @@ class Tinybeans(Cog):
         from email.mime.image import MIMEImage
         from email.mime.multipart import MIMEMultipart
 
-        from aiosmtplib import SMTP
-
         message = MIMEMultipart()
         message['From'] = from_addr
         message['Subject'] = 'Hello World!'
         message.attach(MIMEImage(file.getvalue()))
 
         self.info(f'forwarding to {recipients}')
-        smtp_client = SMTP(hostname='smtp.sendgrid.net', port=587)
-
-        await smtp_client.connect(username='apikey', password=apikey, start_tls=True)
-        await smtp_client.send_message(message, recipients=recipients)
-        await smtp_client.quit()
+        (await self._smtp_client).send_message(message, recipients=recipients)
