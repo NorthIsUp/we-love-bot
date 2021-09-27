@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class Config(ABC):
-    logging: bool = True
+    logging: ClassVar[bool] = True
 
     def _log_miss_msg(self, key: str) -> None:
         if self.logging:
@@ -111,6 +111,7 @@ class PrefixConfig(Config, ABC):
 @dataclass
 class ChainConfig(Config):
     configs: Sequence[Config]
+    logging: ClassVar[bool] = False
 
     def _getitem(self, key: str) -> str:
         for c in self.configs:
