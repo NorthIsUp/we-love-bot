@@ -90,6 +90,7 @@ class Tinybeans(Cog):
     ) -> None:
         async for entry in entries:
             if not self.seen(entry.id):
+                self.info(f'handling entry: {entry.id}')
                 file = None
                 if not entry.is_text:
                     file = await self.fetch_url_as_file(entry.url)
