@@ -83,7 +83,8 @@ class Tinybeans(Cog):
     async def fetch_url_as_file(self, url: str) -> io.BytesIO:
         async with aiohttp.ClientSession() as session, session.get(url) as resp:
             if resp.status != 200:
-                return await self.channel.send('Could not download file...')
+                await self.channel.send('Could not download file...')
+                raise RuntimeError(f'Could not download file at {url}')
             return io.BytesIO(await resp.read())
 
     async def handle_entries(
