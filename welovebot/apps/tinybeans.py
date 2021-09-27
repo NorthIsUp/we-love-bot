@@ -110,10 +110,12 @@ class Tinybeans(Cog):
         if entry.is_text:
             self.info(f'posting text: {entry.caption}')
             await self.channel.send(entry.caption)
-        else:
+        elif file is not None:
             self.info(f'posting file: {entry.caption + " " if entry.caption else ""}{entry.url}')
             file = discord.File(file, Path(entry.url).name)
             await self.channel.send(entry.caption, file=file)
+        else:
+            raise RuntimeError(f'invalid entry {entry}')
 
         await asyncio.sleep(0.01)
 
