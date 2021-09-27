@@ -34,6 +34,21 @@ class Tinybeans(Cog):
         EMAIL_FORWARDS_FROM_ADDR: str
         SENDGRID_API_KEY: str
 
+    @Cog.on_ready
+    def check_config(self):
+        for key in (
+            'LOGIN',
+            'PASSWORD',
+            'CHILDREN_IDS',
+            'CHANNEL',
+            'DB_PATH',
+            'EMAIL_FORWARDS',
+            'EMAIL_FORWARDS_FROM_ADDR',
+            'SENDGRID_API_KEY',
+        ):
+            found = '[  OK  ]' if self.config_safe.get(key) else '[ FAIL ]'
+            self.info(f'{found} {key} is present')
+
     @cached_property
     def db(self) -> JsonConfig:
         db = JsonConfig(self.config_safe.get('DB_PATH', '/tmp/tinybeans.json'))
