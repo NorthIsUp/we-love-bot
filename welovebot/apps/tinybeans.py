@@ -168,4 +168,5 @@ class Tinybeans(Cog):
         message.attach(MIMEImage(file.getvalue()))
 
         self.info(f'forwarding to {recipients}')
-        (await self._smtp_client).send_message(message, recipients=recipients)
+        client = await self._smtp_client
+        await client.send_message(message, recipients=recipients)
