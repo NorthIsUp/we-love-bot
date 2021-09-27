@@ -6,6 +6,7 @@ import logging
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
+from enum import Enum
 from functools import cached_property, wraps
 from pathlib import Path
 from time import time
@@ -54,6 +55,10 @@ class BaseCog(commands.Cog):
     @classmethod
     def on_ready(cls, func):
         """decorator to run a function on the 'on_ready' event"""
+        if not asyncio.iscoroutinefunction(func):
+            raise SyntaxError(
+                f"'{func.__module__}.{func.__name__}' is not a coroutine, try making it async"
+            )
         return cls.task(func, listener='on_ready')
 
     @classmethod
@@ -230,10 +235,44 @@ class BaseCog(commands.Cog):
         return decorator
 
 
+class CogConfigCheck(int, Enum):
+    NO = False
+    YES = True
+    RAISE = 2
+
+    def __bool__(self) -> bool:
+        return self.value in (self.YES, self.RAISE)
+
+
 @dataclass
 class Cog(BaseCog):
     bot: Bot
-    logger: ClassVar(logging.Logger) = None
+    logger: ClassVar[logging.Logger] = None
+    check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.NO
+
+    @BaseCog.on_ready
+    async def _check_config_safe(self) -> None:
+        if self.check_config_safe is CogConfigCheck.NO:
+            return
+
+        # side effect ensures config types exist
+        self.config_safe
+
+        config = getattr(self, 'Config')
+        tombstone = object()
+        should_raise = False
+
+        for key in config.__annotations__.keys():
+            if self.config_safe.get(key, tombstone) is not tombstone:
+                self.info(f'[  OK  ] {key} is present')
+            elif self.check_config_safe is CogConfigCheck.YES:
+                self.warning(f'[ WARN ] {key} is missing')
+            elif self.check_config_safe is CogConfigCheck.RAISE:
+                self.error(f'[ FAIL ] {key} is missing')
+                should_raise = True
+
+        if should_raise:
+            raise RuntimeError('missing config (see above)')
 
     @cached_property
     def name(self) -> str:

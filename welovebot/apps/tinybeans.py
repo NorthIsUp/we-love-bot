@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from pathlib import Path
 from time import time
-from typing import AsyncGenerator, Dict, Optional, Sequence, Set, Union
+from typing import AsyncGenerator, ClassVar, Dict, Optional, Sequence, Set, Union
 
 import aiohttp
 import asyncstdlib as a
@@ -16,13 +16,14 @@ import discord
 from aiosmtplib import SMTP
 from pytinybeans.pytinybeans import PyTinybeans, TinybeanChild, TinybeanEntry
 
-from welovebot.lib.cog import Cog
+from welovebot.lib.cog import Cog, CogConfigCheck
 from welovebot.lib.config import JsonConfig
 
 
 @dataclass
 class Tinybeans(Cog):
     tb: PyTinybeans = field(default_factory=PyTinybeans)
+    check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.RAISE
 
     class Config:
         LOGIN: str
@@ -33,21 +34,6 @@ class Tinybeans(Cog):
         EMAIL_FORWARDS: Set[str]
         EMAIL_FORWARDS_FROM_ADDR: str
         SENDGRID_API_KEY: str
-
-    @Cog.on_ready
-    def check_config(self):
-        for key in (
-            'LOGIN',
-            'PASSWORD',
-            'CHILDREN_IDS',
-            'CHANNEL',
-            'DB_PATH',
-            'EMAIL_FORWARDS',
-            'EMAIL_FORWARDS_FROM_ADDR',
-            'SENDGRID_API_KEY',
-        ):
-            found = '[  OK  ]' if self.config_safe.get(key) else '[ FAIL ]'
-            self.info(f'{found} {key} is present')
 
     @cached_property
     def db(self) -> JsonConfig:
@@ -87,7 +73,7 @@ class Tinybeans(Cog):
 
     def seen(self, id: Union[str, int], update: bool = True) -> bool:
         id = str(id)
-        seen = self.db['seen'].get(id, False)
+        seen: bool = self.db['seen'].get(id, False)
 
         if not seen:
             self.db.update_in('seen', {id: time()})
@@ -158,15 +144,15 @@ class Tinybeans(Cog):
             self.info('invalid photo for email send')
             return
 
-        if self.config_safe.get('SENDGRID_API_KEY', ''):
+        if not self.config_safe.get('SENDGRID_API_KEY', ''):
             self.error('sendgrid api key missing')
             return
 
-        if recipients := self.config_safe.get('EMAIL_FORWARDS', []):
+        if not (recipients := self.config_safe.get('EMAIL_FORWARDS', [])):
             self.error('recipients missing')
             return
 
-        if from_addr := self.config_safe.get('EMAIL_FORWARDS_FROM_ADDR', ''):
+        if not (from_addr := self.config_safe.get('EMAIL_FORWARDS_FROM_ADDR', '')):
             self.error('from addr missing')
             return
 
