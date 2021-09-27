@@ -32,6 +32,7 @@ class Tinybeans(Cog):
         DB_PATH: str
         EMAIL_FORWARDS: Set[str]
         EMAIL_FORWARDS_FROM_ADDR: str
+        SENDGRID_API_KEY: str
 
     @cached_property
     def db(self) -> JsonConfig:
