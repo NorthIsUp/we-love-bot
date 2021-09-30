@@ -2,7 +2,6 @@ from functools import cached_property
 from typing import ClassVar, Optional, Set
 
 from discord import Message
-from discord.threads import Thread
 
 from welovebot.lib.cog import Cog
 

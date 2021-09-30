@@ -1,12 +1,4 @@
 from dataclasses import dataclass
-from functools import partial
-from pathlib import Path
-from typing import Any, Dict, Literal, Optional
-from urllib.parse import urlparse, urlsplit
-
-import async_timeout
-import requests
-from aiohttp import ClientSession, MultipartWriter
 
 from welovebot.lib.cog import Cog
 

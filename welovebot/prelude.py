@@ -1,5 +1,3 @@
-import imp
-
 from discord import Guild, Member, User
 from discord.ext.commands import Context
 from discord_slash import SlashContext

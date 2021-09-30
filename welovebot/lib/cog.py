@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import logging
-from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from functools import cached_property, wraps
-from pathlib import Path
 from time import time
 from typing import (
     TYPE_CHECKING,
@@ -16,23 +13,17 @@ from typing import (
     Awaitable,
     Callable,
     ClassVar,
+    Coroutine,
     Dict,
     List,
     Optional,
-    Protocol,
-    Set,
     Type,
     Union,
-    cast,
 )
 
-import aiohttp
-import discord
 from discord.ext import commands
 from discord_slash import cog_ext
 from redis import StrictRedis
-
-from welovebot.lib.config import JsonConfig
 
 from .config import BotConfig, ChainConfig, CogConfig
 from .config import Config as BaseConfig
@@ -43,17 +34,20 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-TaskCallableT = Callable[['Cog'], Awaitable[None]]
+TaskCallableT = Callable[..., Awaitable[None]]
 
 
+@dataclass
 class BaseCog(commands.Cog):
+    logger: ClassVar[logging.Logger] = None
+
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
         """helper to access the bot event loop"""
         return self.bot.loop
 
     @classmethod
-    def on_ready(cls, func):
+    def on_ready(cls, func: Callable[..., Any]):
         """decorator to run a function on the 'on_ready' event"""
         if not asyncio.iscoroutinefunction(func):
             raise SyntaxError(
@@ -64,11 +58,11 @@ class BaseCog(commands.Cog):
     @classmethod
     def task(
         cls,
-        func_or_listener: Union[str, TaskCallableT],
+        func_or_listener: Union[str, Coroutine[Any, Any, None]],
         *,
         listener: str = 'on_ready',
-        filter: Optional[Callable[[...], bool]] = None,
-        filter_method: Optional[Callable[[Cog, ...], bool]] = None,
+        filter: Optional[Callable[..., bool]] = None,
+        filter_method: Optional[Callable[..., bool]] = None,
     ) -> TaskCallableT:
 
         if isinstance(func_or_listener, str):
@@ -76,19 +70,19 @@ class BaseCog(commands.Cog):
         elif func_or_listener.__name__.startswith('on_'):
             listener = func_or_listener.__name__
 
-        def decorator(func: TaskCallableT):
+        def decorator(func: Coroutine[Any, Any, None]) -> Callable[..., None]:
             @cls.listener(listener)
             @wraps(func)
-            async def wrapper(self, *args, **kwargs):
+            async def wrapper(self: BaseCog, *args: Any, **kwargs: Any) -> None:
                 if filter and filter(*args, **kwargs) is False:
-                    self.debug(f'skipping listener {listener}')
+                    cls.debug(f'skipping listener {listener}')
                     return
                 if filter_method and filter_method(self, *args, **kwargs) is False:
-                    self.debug(f'skipping listener {listener}')
+                    cls.debug(f'skipping listener {listener}')
                     return
-                self.debug(f'[{listener}] starting {func.__name__}')
+                cls.debug(f'[{listener}] starting {func.__name__}')
                 await self.loop.create_task(func(self, *args, **kwargs))
-                self.debug(f'[{listener}] complete {func.__name__}')
+                cls.debug(f'[{listener}] complete {func.__name__}')
 
             return wrapper
 
@@ -97,28 +91,37 @@ class BaseCog(commands.Cog):
     @classmethod
     def perodic_task(
         cls,
-        seconds: int = 0,
+        seconds: Union[int, str] = 0,
         *,
-        weeks: int = 0,
-        days: int = 0,
-        hours: int = 0,
-        minutes: int = 0,
-        milliseconds: int = 0,
-        listener='on_ready',
+        weeks: Union[int, str] = 0,
+        days: Union[int, str] = 0,
+        hours: Union[int, str] = 0,
+        minutes: Union[int, str] = 0,
+        milliseconds: Union[int, str] = 0,
+        listener: str = 'on_ready',
     ):
-        interval = timedelta(
-            weeks=weeks,
-            days=days,
-            hours=hours,
-            minutes=minutes,
-            seconds=seconds,
-            milliseconds=milliseconds,
-        ).total_seconds()
-
         def decorator(func: Callable[[Cog], Awaitable[None]]):
             @cls.listener(listener)
             @wraps(func)
             async def wrapper(self: Cog):
+                def int_or_config(s: Union[str, int]) -> int:
+                    """use the passed int or check if the value is in config.
+                    A default value can be passed via ENVVAR=default"""
+                    if isinstance(s, int):
+                        return s
+
+                    envvar, *default = s.split('=')
+                    return int(self.config_safe.get(envvar, default[0] if default else 0))
+
+                interval = timedelta(
+                    weeks=int_or_config(weeks),
+                    days=int_or_config(days),
+                    hours=int_or_config(hours),
+                    minutes=int_or_config(minutes),
+                    seconds=int_or_config(seconds),
+                    milliseconds=int_or_config(milliseconds),
+                ).total_seconds()
+
                 async def _perodic_task() -> None:
                     name = f'{self.__class__.__name__}.{func.__name__}'
                     previous_duration = ''
@@ -161,7 +164,7 @@ class BaseCog(commands.Cog):
             @commands.command(name=name, cls=cmd_cls, **attrs)
             @wraps(func)
             async def wrapper(self, *args, **kwargs):
-                self.debug(f'handling command `{self.name}.{func.__name__}`')
+                cls.debug(f'handling command `{self.name}.{func.__name__}`')
                 return await func(self, *args, **kwargs)
 
             return wrapper
@@ -188,7 +191,7 @@ class BaseCog(commands.Cog):
             )
             @wraps(func)
             def wrapper(self, *args, **kwargs):
-                self.debug(f'handling slash command {func.__name__}')
+                cls.debug(f'handling slash command {func.__name__}')
                 return func(self, *args, **kwargs)
 
             return wrapper
@@ -199,18 +202,18 @@ class BaseCog(commands.Cog):
     def slash_subcommand(
         cls,
         *,
-        base,
-        subcommand_group=None,
-        name=None,
+        base: str,
+        subcommand_group: str = None,
+        name: str = None,
         description: str = None,
         base_description: str = None,
         base_desc: str = None,
         subcommand_group_description: str = None,
         sub_group_desc: str = None,
         guild_ids: List[int] = None,
-        options: List[dict] = None,
-        connector: dict = None,
-    ):
+        options: List[Dict[str, object]] = None,
+        connector: Dict[str, object] = None,
+    ) -> Callable[..., object]:
         def decorator(func):
             @cog_ext.cog_subcommand(
                 base=base,
@@ -227,12 +230,37 @@ class BaseCog(commands.Cog):
             )
             @wraps(func)
             def wrapper(self, *args, **kwargs):
-                self.debug(f'handling slash command {func.__name__}')
+                cls.debug(f'handling slash command {func.__name__}')
                 return func(self, *args, **kwargs)
 
             return wrapper
 
         return decorator
+
+    @classmethod
+    def _logger(cls) -> logging.Logger:
+        cls.logger = cls.logger or logging.getLogger(cls.__module__)
+        return cls.logger
+
+    @classmethod
+    def debug(cls, msg: str, *args: Any, **kwargs: Any) -> None:
+        cls._logger().debug(msg, *args, **kwargs)
+
+    @classmethod
+    def info(cls, msg: str, *args: Any, **kwargs: Any) -> None:
+        cls._logger().info(msg, *args, **kwargs)
+
+    @classmethod
+    def warning(cls, msg: str, *args: Any, **kwargs: Any) -> None:
+        cls._logger().warning(msg, *args, **kwargs)
+
+    @classmethod
+    def error(cls, msg: str, *args: Any, **kwargs: Any) -> None:
+        cls._logger().error(msg, *args, **kwargs)
+
+    @classmethod
+    def exception(cls, msg: Union[str, Exception], *args: Any, **kwargs: Any) -> None:
+        cls._logger().exception(msg, *args, **kwargs)
 
 
 class CogConfigCheck(int, Enum):
@@ -247,7 +275,6 @@ class CogConfigCheck(int, Enum):
 @dataclass
 class Cog(BaseCog):
     bot: Bot
-    logger: ClassVar[logging.Logger] = None
     check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.NO
 
     @BaseCog.on_ready
@@ -260,7 +287,7 @@ class Cog(BaseCog):
 
         config = getattr(self, 'Config')
         tombstone = object()
-        should_raise = False
+        should_raise = []
 
         for key in config.__annotations__.keys():
             if self.config_safe.get(key, tombstone) is not tombstone:
@@ -269,10 +296,10 @@ class Cog(BaseCog):
                 self.warning(f'[ WARN ] {key} is missing')
             elif self.check_config_safe is CogConfigCheck.RAISE:
                 self.error(f'[ FAIL ] {key} is missing')
-                should_raise = True
+                should_raise.append(key)
 
         if should_raise:
-            raise RuntimeError('missing config (see above)')
+            raise RuntimeError(f'missing config ({",".join(should_raise)})')
 
     @cached_property
     def name(self) -> str:
@@ -308,30 +335,8 @@ class Cog(BaseCog):
     def bot_config(self) -> BaseConfig:
         return BotConfig(self.bot)
 
-    @classmethod
-    def _logger(cls) -> logging.Logger:
-        cls.logger = cls.logger or logging.getLogger(cls.__module__)
-        return cls.logger
-
-    @classmethod
-    def debug(cls, msg: str, *args: Any, **kwargs: Any) -> None:
-        cls._logger().debug(msg, *args, **kwargs)
-
-    @classmethod
-    def info(cls, msg: str, *args: Any, **kwargs: Any) -> None:
-        cls._logger().info(msg, *args, **kwargs)
-
-    @classmethod
-    def warning(cls, msg: str, *args: Any, **kwargs: Any) -> None:
-        cls._logger().warning(msg, *args, **kwargs)
-
-    @classmethod
-    def error(cls, msg: str, *args: Any, **kwargs: Any) -> None:
-        cls._logger().error(msg, *args, **kwargs)
-
-    @classmethod
-    def exception(cls, msg: Union[str, Exception], *args, **kwargs) -> None:
-        cls._logger().exception(msg, *args, **kwargs)
+    def dispatch(self, event_name: str, *args: Any, **kwargs: Any) -> None:
+        self.bot.dispatch(event_name, *args, **kwargs)
 
 
 @dataclass
@@ -346,121 +351,3 @@ class RedisCog(Cog):
     async def on_ready(self):
         self.bot.send
         self.redis.keys()
-
-
-@dataclass
-class ImageHandlingCog(Cog):
-    @dataclass
-    class IncompleteHandling(RuntimeError):
-        """failed to fully handle the image"""
-
-        url: str
-
-    class Config:
-        CHANNEL: int
-        DB_PATH: str
-        EMAIL_FORWARDS: Set[str]
-        EMAIL_FORWARDS_FROM_ADDR: str
-
-    class HandlerType(Protocol):
-        def __call__(self, url: str, file: io.BytesIO, caption: Optional[str] = None) -> None:
-            ...
-
-    handlers: List[HandlerType] = field(default_factory=list)
-
-    def __post_init__(self):
-        for handler in self.config_safe.get('HANDLERS', ['discord_channel']):
-            self.handlers.append(getattr(self, f'_handle_{handler}'))
-
-    @cached_property
-    def db(self) -> JsonConfig:
-        db = JsonConfig(self.config_safe.get('DB_PATH', '/tmp/tinybeans.json'))
-        seen_default: Dict[str, float] = {}
-        db.setdefault('seen', seen_default)
-        return db
-
-    @cached_property
-    def channel(self) -> discord.abc.TextChannel:
-        channel = self.bot.get_channel(self.config_safe['CHANNEL'])
-        assert channel
-        return cast(discord.TextChannel, channel)
-
-    @contextmanager
-    def seen(self, id: Union[str, int], update: bool = True) -> bool:
-        id = str(id)
-        seen = self.db['seen'].get(id, False)
-
-        try:
-            yield seen
-        except ImageHandlingCog.IncompleteHandling:
-            self.warning(f'incomplete processing {id}')
-        else:
-            if not seen:
-                self.db.update_in('seen', {id: time()})
-
-    async def fetch_url_as_file(self, url: str) -> io.BytesIO:
-        async with aiohttp.ClientSession() as session, session.get(url) as resp:
-            if resp.status != 200:
-                await self.channel.send('Could not download file...')
-                raise ImageHandlingCog.IncompleteHandling(url)
-            return io.BytesIO(await resp.read())
-
-    async def handle_image_url(self, url: str, caption: Optional[str] = None):
-        with self.seen(url) as seen:
-            if not seen:
-                file = await self.fetch_url_as_file(url)
-
-                for handler in self.handlers:
-                    handler(caption=caption, file=file, url=url)
-
-    async def _handle_discord_channel(
-        self,
-        url: str,
-        file: io.BytesIO,
-        caption: Optional[str] = None,
-    ) -> None:
-        self.info(f'posting file: {caption + " " if caption else ""}{url}')
-        await self.channel.send(caption, file=discord.File(file, Path(url).name))
-        await asyncio.sleep(0.01)
-
-    async def _handle_meural_forward(
-        self,
-        url: str,
-        file: io.BytesIO,
-        caption: Optional[str] = None,
-    ) -> None:
-        """send the entry to a meural frame"""
-        if file is None:
-            return
-
-    async def _handle_email_forward(
-        self,
-        url: str,
-        file: io.BytesIO,
-        caption: Optional[str] = None,
-    ) -> None:
-        if (
-            url is None
-            or file is None
-            or not (apikey := self.config.get('SENDGRID_API_KEY', ''))
-            or not (recipients := self.config_safe.get('EMAIL_FORWARDS', []))
-            or not (from_addr := self.config_safe.get('EMAIL_FORWARDS_FROM_ADDR', ''))
-        ):
-            return
-
-        from email.mime.image import MIMEImage
-        from email.mime.multipart import MIMEMultipart
-
-        from aiosmtplib import SMTP
-
-        message = MIMEMultipart()
-        message['From'] = from_addr
-        message['Subject'] = 'Hello World!'
-        message.attach(MIMEImage(file.getvalue()))
-
-        self.info(f'forwarding to {recipients}')
-        smtp_client = SMTP(hostname='smtp.sendgrid.net', port=587)
-
-        await smtp_client.connect(username='apikey', password=apikey, start_tls=True)
-        await smtp_client.send_message(message, recipients=recipients)
-        await smtp_client.quit()

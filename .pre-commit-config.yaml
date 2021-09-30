@@ -9,6 +9,11 @@ repos:
   - id: trailing-whitespace
   - id: requirements-txt-fixer
     files: requirements*.in
+- repo: https://github.com/hadialqattan/pycln
+  rev: v1.0.3 # Possible releases: https://github.com/hadialqattan/pycln/releases
+  hooks:
+  - id: pycln
+    args: [--config=pyproject.toml]
 - repo: https://github.com/odwyersoftware/brunette
   rev: 0.2.0
   hooks:

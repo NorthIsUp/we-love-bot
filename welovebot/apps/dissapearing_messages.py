@@ -1,7 +1,5 @@
-import asyncio
 import re
 from datetime import datetime, timedelta
-from logging import getLogger
 from typing import ClassVar, Dict
 
 from welovebot.lib.cog import Cog

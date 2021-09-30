@@ -41,7 +41,6 @@ class Bot(commands.Bot):
     @cached_property
     def config_env(self) -> Config:
         """config for the bot, accessable via __getitem__ or get(key, default)"""
-        from .config import EnvConfig
 
     @cached_property
     def slash(self) -> SlashCommand:

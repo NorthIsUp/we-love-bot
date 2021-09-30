@@ -1,13 +1,10 @@
 import asyncio
-import imp
 import logging
 from dataclasses import dataclass
 from functools import cached_property, wraps
 from typing import Callable, ClassVar, Iterable, List, Literal, Optional
-from urllib.parse import urljoin
 
 from aiohttp import web, web_middlewares
-from discord.ext import commands
 
 from .cog import Cog
 
