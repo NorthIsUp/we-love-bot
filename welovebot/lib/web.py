@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from asyncio import Semaphore
 from dataclasses import dataclass
 from functools import wraps
 from typing import Callable, ClassVar, Iterable, List, Literal, Optional
@@ -22,6 +23,8 @@ class WebCog(Cog):
     middlewares: ClassVar[List[web_middlewares._Middleware]] = []
 
     _web_app: ClassVar[web.Application] = web.Application()
+    _site: ClassVar[Optional[web.TCPSite]] = None
+    _lock: ClassVar[Semaphore] = Semaphore()
 
     def __post_init__(self):
         if self.url_root is None:
@@ -30,9 +33,6 @@ class WebCog(Cog):
         self.url_root = self.url_root.strip('/')
         if '/' in self.url_root:
             raise ValueError(f'{self.__class__.__name__}.url_root {_NO_SLASH_ERR}')
-
-        self.host = self.config.get('HOST', '0.0.0.0')
-        self.port = self.config.get('PORT', 8080)
 
         self.add_subapp()
 
@@ -78,14 +78,22 @@ class WebCog(Cog):
 
     @Cog.task
     async def start(self):
-        runner = web.AppRunner(self._web_app)
+        async with WebCog._lock:
+            if WebCog._site:
+                return logger.info('site alredy started')
 
-        await runner.setup()
-        self.site = web.TCPSite(runner, self.host, self.port)
+            logger.info('starting site')
 
-        logger.info('starting site')
-        await self.site.start()
-        logger.info(f'started site on {self.host}:{self.port}')
+            host: str = self.config.get('HOST', '0.0.0.0')
+            port: int = self.config.get('PORT', 8080)
+
+            runner = web.AppRunner(self._web_app)
+            await runner.setup()
+
+            WebCog._site = web.TCPSite(runner, host, port)
+            await WebCog._site.start()
+
+            logger.info(f'started site on {host}:{port}')
 
     def cog_unload(self):
-        asyncio.ensure_future(self.site.stop())
+        asyncio.ensure_future(WebCog._site.stop())
