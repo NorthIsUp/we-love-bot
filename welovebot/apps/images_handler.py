@@ -16,7 +16,6 @@ from aiosmtplib import SMTP
 from cachetools import LRUCache
 
 from welovebot.lib.cog import Cog, CogConfigCheck
-from welovebot.lib.cogs.email_images import ImageHandlingCog
 from welovebot.lib.config import JsonConfig
 
 
@@ -55,7 +54,7 @@ class ImagesHandler(Cog):
         if url not in self._cache:
             async with self._lock, aiohttp.ClientSession() as session, session.get(url) as resp:
                 if resp.status != 200:
-                    raise ImageHandlingCog.IncompleteHandling(url)
+                    raise RuntimeError(f'incomplete handling of {url}')
                 self._cache[url] = io.BytesIO(await resp.read())
 
         return self._cache[url]
