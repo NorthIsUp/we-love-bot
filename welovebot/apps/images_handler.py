@@ -64,14 +64,14 @@ class ImagesHandler(WebCog):
                 next_try = (datetime.utcnow() + timedelta(hours=1)).isoformat()
                 seen_db[id] = f'error: TimeoutError {next_try}'
             except Exception as e:
-                seen_db[id] = f'error: {e.__class__}'
+                seen_db[id] = f'error: {e.__class__.__name__}'
                 self.exception(e)
                 raise
             except SystemExit as e:
                 seen_db[id] = f'error: SystemExit'
-                self.error(f'unclean exit for {id}: {e.__class__}')
+                self.error(f'unclean exit for {id}: {e.__class__.__name__}')
             except BaseException as e:
-                seen_db[id] = f'error: {e.__class__}'
+                seen_db[id] = f'error: {e.__class__.__name__}'
                 self.exception(e)
 
     async def fetch_url_as_file(self, url: str) -> io.BytesIO:
@@ -111,12 +111,17 @@ class ImagesHandler(WebCog):
             )
 
     @a.cached_property
-    async def _smtp_client(self) -> SMTP:
-        apikey = self.config_safe['SENDGRID_API_KEY']
-        client = SMTP(hostname='smtp.sendgrid.net', port=587)
-        await client.connect(username='apikey', password=apikey, start_tls=True)
-
-        return client
+    async def _smtp_client(self, _client: SMTP = SMTP()) -> SMTP:
+        if not _client.is_connected:
+            async with self._lock:
+                await _client.connect(
+                    hostname='smtp.sendgrid.net',
+                    port=587,
+                    username='apikey',
+                    password=self.config_safe['SENDGRID_API_KEY'],
+                    start_tls=True,
+                )
+        return _client
 
     @Cog.task('on_image_with_caption')
     async def handle_email_forward(
@@ -124,7 +129,6 @@ class ImagesHandler(WebCog):
         source: Cog,
         url: str,
         caption: Optional[str] = None,
-        _client: SMTP = SMTP(),
         **kwargs,
     ) -> None:
 
@@ -133,16 +137,6 @@ class ImagesHandler(WebCog):
 
         if not (email_from_addr := source.config_safe['EMAIL_FROM_ADDR']):
             return self.error('from addr missing')
-
-        async with self._lock:
-            if not _client.is_connected:
-                await _client.connect(
-                    hostname='smtp.sendgrid.net',
-                    port=587,
-                    username='apikey',
-                    password=self.config_safe['SENDGRID_API_KEY'],
-                    start_tls=True,
-                )
 
         with self.seen('email_forward', url) as seen:
             if seen:
@@ -163,6 +157,7 @@ class ImagesHandler(WebCog):
                 return self.exception(e)
 
             self.info(f'forwarding to {email_recipients}')
+            _client: SMTP = await self.__smtp_client
             results, msg = await _client.send_message(message, recipients=email_recipients)
             for recipient, response in results.items():
                 self.debug(f'[{msg}] {recipient} got email {response}')
