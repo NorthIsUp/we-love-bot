@@ -1,26 +1,31 @@
 from __future__ import annotations
 
 import io
+import json
 from asyncio import Semaphore
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import cached_property
+from http.client import OK
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
 import aiohttp
 import asyncstdlib as a
 import discord
+from aiohttp.web import Request, Response
 from aiosmtplib import SMTP
 from cachetools import LRUCache
 
 from welovebot.lib.cog import Cog, CogConfigCheck
 from welovebot.lib.config import JsonConfig
+from welovebot.lib.web import WebCog
 
 
 @dataclass
-class ImagesHandler(Cog):
+class ImagesHandler(WebCog):
+    url_root: ClassVar[str] = 'images_handler'
     check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.RAISE
     _lock: Semaphore = field(default_factory=Semaphore)
     _cache: LRUCache[str, io.BytesIO] = field(
@@ -34,6 +39,10 @@ class ImagesHandler(Cog):
     @cached_property
     def db(self) -> JsonConfig:
         return JsonConfig(self.config_safe.get('DB_PATH', '/tmp/tinybeans.json'))
+
+    @WebCog.route('GET', '/db')
+    async def show_db(self, request: Request) -> Response:
+        return Response(text=json.dumps(self.db.json, indent=2), status=OK)
 
     @contextmanager
     def seen(self, key: str, id: Union[int, str]) -> float:

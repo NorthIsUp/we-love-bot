@@ -80,7 +80,7 @@ class WebCog(Cog):
 
         logger.info('starting site')
         await self.site.start()
-        logger.info('started site')
+        logger.info(f'started site on {self.host}:{self.port}')
 
     def cog_unload(self):
         asyncio.ensure_future(self.site.stop())
