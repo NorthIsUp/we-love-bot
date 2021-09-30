@@ -76,7 +76,7 @@ class WebCog(Cog):
 
         return decorator
 
-    @Cog.task
+    @Cog.on_ready
     async def start(self):
         async with WebCog._lock:
             if WebCog._site:
