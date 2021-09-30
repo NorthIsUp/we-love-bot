@@ -5,7 +5,6 @@ import re
 from dataclasses import dataclass
 from http.client import BAD_REQUEST, OK
 from typing import ClassVar, Dict, List, Optional, Union
-from xmlrpc.client import SERVER_ERROR
 
 from aiohttp.web import Request, Response
 
@@ -41,6 +40,11 @@ class ImagesHook(WebCog):
 
             return cls(**kwargs)
 
+    @classmethod
+    def parse_body(cls, body: str, pattern: str) -> List[str]:
+        cls.info(f'pattern: {repr(pattern)}')
+        return re.findall(pattern, body) or []
+
     @WebCog.route('POST', '/handle_body')
     async def handle_body(self, request: Request) -> Response:
         """accepts payload of email headers, most importantly 'Body'"""
@@ -59,17 +63,12 @@ class ImagesHook(WebCog):
             return _respond(BAD_REQUEST)
 
         for url in self.parse_body(params.body, params.pattern):
-            try:
-                self.dispatch(
-                    'image_with_caption', source=self, url=url, discord_channel=params.channel
-                )
-                response[url] = OK
-            except Exception:
-                response['status'] = response[url] = SERVER_ERROR
+            self.dispatch(
+                'image_with_caption',
+                source=self,
+                url=url,
+                discord_channel=params.channel,
+            )
+            response[url] = OK
 
         return _respond(OK)
-
-    @classmethod
-    def parse_body(cls, body: str, pattern: str) -> List[str]:
-        cls.info(f'pattern: {repr(pattern)}')
-        return re.findall(pattern, body) or []
