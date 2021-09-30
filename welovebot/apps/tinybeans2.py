@@ -53,4 +53,7 @@ class Tinybeans(Cog):
     async def periodic_sync(self) -> None:
         async for entry in self.entries():
             self.info(f'handling entry: {entry.id}')
-            self.dispatch('image_with_caption', source=self, url=entry.url, caption=entry.caption)
+            if entry.is_photo or entry.is_video:
+                self.dispatch(
+                    'image_with_caption', source=self, url=entry.url, caption=entry.caption
+                )

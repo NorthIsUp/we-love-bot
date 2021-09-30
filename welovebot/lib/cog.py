@@ -77,9 +77,15 @@ class BaseCog(commands.Cog):
                 if filter_method and filter_method(self, *args, **kwargs) is False:
                     cls.debug(f'skipping listener {listener}')
                     return
-                cls.debug(f'[{listener}] starting {func.__name__}')
-                await self.loop.create_task(func(self, *args, **kwargs))
-                cls.debug(f'[{listener}] complete {func.__name__}')
+
+                @wraps(func)
+                async def logging_func(self: BaseCog, *args: Any, **kwargs: Any) -> None:
+                    cls.debug(f'[{listener}] starting {func.__name__}')
+                    await func(self, *args, **kwargs)
+                    cls.debug(f'[{listener}] complete {func.__name__}')
+
+                cls.debug(f'[{listener}] scheduling {func.__name__}')
+                await self.loop.create_task(logging_func(self, *args, **kwargs))
 
             return wrapper
 
