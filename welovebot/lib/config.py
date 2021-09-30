@@ -20,6 +20,7 @@ from typing import (
     Dict,
     Optional,
     Sequence,
+    Set,
     Type,
     Union,
     cast,
@@ -40,16 +41,21 @@ class Config(ABC):
     def __post_init__(self) -> None:
         pass
 
+    def _seen_key(self, key: str, seen: Set[str] = set()) -> bool:
+        if not (seen_key := key in seen):
+            seen.add(key)
+        return seen_key
+
     def _log_miss_msg(self, key: str) -> None:
-        if self.logging:
+        if self.logging and not self._seen_key(key):
             logger.debug(f'config miss: {key}')
 
     def _log_hit_msg(self, key: str) -> None:
-        if self.logging:
+        if self.logging and not self._seen_key(key):
             logger.debug(f'config hit: {key}')
 
     def _log_default_msg(self, key: str) -> None:
-        if self.logging:
+        if self.logging and not self._seen_key(key):
             logger.debug(f'config default: {key}')
 
     def __getitem__(self, key: str) -> str:
@@ -152,13 +158,13 @@ class TypedConfig(Config):
     types: Type
 
     def _log_hit_msg(self, key: str) -> None:
-        if self.logging:
+        if self.logging and not self._seen_key(key):
             a = self.types.__annotations__[key]
             a = a.__name__ if isinstance(a, type) else a
             logger.debug(f'config hit: {key} (as type {a})')
 
     def _log_default_msg(self, key: str) -> None:
-        if self.logging:
+        if self.logging and not self._seen_key(key):
             a = self.types.__annotations__[key]
             a = a.__name__ if isinstance(a, type) else a
             logger.debug(f'config default: {key} (as type {a})')
