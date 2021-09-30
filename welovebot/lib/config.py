@@ -33,8 +33,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class Config(ABC):
     logging: ClassVar[bool] = True
+
+    def __post_init__(self) -> None:
+        pass
 
     def _log_miss_msg(self, key: str) -> None:
         if self.logging:
@@ -91,6 +95,9 @@ class PrefixConfig(Config, ABC):
     def __init__(self, prefix: Optional[str] = None) -> None:
         self.set_prefix(prefix)
 
+    def __post_init__(self) -> None:
+        super().__post_init__()
+
     @staticmethod
     def _join_prefix(*s: str) -> KeyT:
         return KeyT(('__'.join(s)).upper())
@@ -118,6 +125,16 @@ class ChainConfig(Config):
             try:
                 return c[key]
             except KeyError as e:
+                if c is self.configs[-1]:
+                    raise
+        assert False, 'this should not be reached'
+
+    def _setitem(self, key: str, value: str) -> None:
+        for c in self.configs:
+            try:
+                c[key] = value
+                return
+            except RuntimeError:
                 if c is self.configs[-1]:
                     raise
         assert False, 'this should not be reached'
@@ -158,27 +175,36 @@ class TypedConfig(Config):
     def _getdefault(self, key: str) -> str:
         return getattr(self, key, None)
 
-    def _getitem(self, key: str) -> str:
-        if (annotation := self.types.__annotations__.get(key)) is None:
-            raise TypeError(f'{key} must be declared in the TypeConfig')
-
-        item = super()._getitem(key)
-
+    def _cast_for_annotation(self, value, annotation) -> Type:
         if isinstance(annotation, str) and '[' in annotation:
             match = re.match(r'^(?P<origin_name>[\w]+)\[(?P<to_cls_name>\w+)\]$', annotation)
             assert match, f"no match for '{annotation}'"
             origin_name = match.group('origin_name').lower()
             to_cls_type = self._simple_type_map[match.group('to_cls_name')]
-            return self._simple_type_map[origin_name](item, to_cls_type)
+            return self._simple_type_map[origin_name](value, to_cls_type)
         elif isinstance(annotation, typing._GenericAlias):
             origin_name = annotation.__origin__.__name__
             to_cls_name = annotation.__args__[0].__name__
             to_cls_type = self._simple_type_map[to_cls_name]
-            return self._simple_type_map[origin_name](item, to_cls_type)
+            return self._simple_type_map[origin_name](value, to_cls_type)
         elif isinstance(annotation, type):
             annotation = annotation.__name__
 
-        return self._simple_type_map[annotation](item)
+        return self._simple_type_map[annotation](value)
+
+    def _getitem(self, key: str) -> str:
+        if (annotation := self.types.__annotations__.get(key)) is None:
+            raise TypeError(f'{key} must be declared in the TypeConfig')
+
+        value = super()._getitem(key)
+        return self._cast_for_annotation(value, annotation)
+
+    def _setitem(self, key: str, value: str) -> None:
+        if (annotation := self.types.__annotations__.get(key)) is None:
+            raise TypeError(f'{key} must be declared in the TypeConfig')
+
+        value = self._cast_for_annotation(value, annotation)
+        return super()._setitem(key, value)
 
 
 @dataclass
@@ -192,6 +218,10 @@ class KeyT(str):
 
 @dataclass
 class EnvConfig(PrefixConfig):
+    def __post_init__(self) -> None:
+        self.overrides: Dict[str, str] = {}
+        super().__post_init__()
+
     @staticmethod
     def _snake_case(s: str) -> str:
         if isinstance(s, KeyT):
@@ -199,7 +229,10 @@ class EnvConfig(PrefixConfig):
         return re.sub('(?!^)([A-Z]+)', r'_\1', s).upper()
 
     def _getitem(self, key: str) -> str:
-        return environ[key]
+        return self.overrides.get(key) or environ[key]
+
+    def _setitem(self, key: str, value: str) -> None:
+        self.overrides[key] = value
 
 
 @dataclass
@@ -208,6 +241,7 @@ class JsonConfig(Config):
     logging: ClassVar[bool] = False
 
     def __post_init__(self) -> None:
+        super().__post_init__()
         if not isinstance(self.path, Path):
             self.path = Path(self.path)
 
@@ -266,6 +300,7 @@ class BotConfig(EnvConfig):
 
     def __post_init__(self) -> None:
         """try for bot.config_prefix first, otherwise the default prefix"""
+        super().__post_init__()
         self.set_prefix(getattr(self.bot, 'config_prefix', None))
 
 

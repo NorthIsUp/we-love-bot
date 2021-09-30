@@ -37,10 +37,7 @@ logger = logging.getLogger(__name__)
 TaskCallableT = Callable[..., Awaitable[None]]
 
 
-@dataclass
 class BaseCog(commands.Cog):
-    logger: ClassVar[logging.Logger] = None
-
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
         """helper to access the bot event loop"""
@@ -239,7 +236,7 @@ class BaseCog(commands.Cog):
 
     @classmethod
     def _logger(cls) -> logging.Logger:
-        cls.logger = cls.logger or logging.getLogger(cls.__module__)
+        cls.logger = getattr(cls, 'logger', None) or logging.getLogger(cls.__module__)
         return cls.logger
 
     @classmethod

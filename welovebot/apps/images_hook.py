@@ -1,24 +1,23 @@
 from __future__ import annotations
 
-import asyncio
-import io
 import json
 import re
 from dataclasses import dataclass
 from http.client import BAD_REQUEST, OK
-from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import ClassVar, Dict, List, Optional, Union
 from xmlrpc.client import SERVER_ERROR
 
-import aiohttp
-import discord
 from aiohttp.web import Request, Response
 
 from welovebot.lib.web import WebCog
 
 
-class EmailImagesHook(WebCog):
-    url_root = 'email_images'
+@dataclass
+class ImagesHook(WebCog):
+    url_root: ClassVar[str] = 'email_images'
+
+    class Config:
+        IMAGE_CHANNEL: int
 
     @dataclass
     class Params:
@@ -30,7 +29,7 @@ class EmailImagesHook(WebCog):
             self.channel = int(self.channel)
 
         @classmethod
-        def from_params(cls, params: Dict[str, Union[bytes, int, str]]) -> EmailImagesHook.Params:
+        def from_params(cls, params: Dict[str, Union[bytes, int, str]]) -> ImagesHook.Params:
             kwargs = {}
             for name, dst in (
                 ('body', str),
@@ -54,15 +53,16 @@ class EmailImagesHook(WebCog):
         if not request.has_body:
             return _respond(BAD_REQUEST)
 
-        params = EmailImagesHook.Params.from_params(await request.post())
+        params = ImagesHook.Params.from_params(await request.post())
 
-        if (channel := self.bot.get_channel(params.channel)) is None:
+        if not params.channel:
             return _respond(BAD_REQUEST)
 
         for url in self.parse_body(params.body, params.pattern):
             try:
-                self.info(f'handling url {url}')
-                await self.handle_discord_send(url, channel)
+                self.dispatch(
+                    'image_with_caption', source=self, url=url, discord_channel=params.channel
+                )
                 response[url] = OK
             except Exception:
                 response['status'] = response[url] = SERVER_ERROR
@@ -73,13 +73,3 @@ class EmailImagesHook(WebCog):
     def parse_body(cls, body: str, pattern: str) -> List[str]:
         cls.info(f'pattern: {repr(pattern)}')
         return re.findall(pattern, body) or []
-
-    async def fetch_url_as_file(self, url: str) -> io.BytesIO:
-        async with aiohttp.ClientSession() as session, session.get(url) as resp:
-            return io.BytesIO(await resp.read())
-
-    async def handle_discord_send(self, entry_url: str, channel: discord.TextChannel) -> None:
-        self.info(f'posting file: {entry_url}')
-        file = await self.fetch_url_as_file(entry_url)
-        await channel.send(file=discord.File(file, Path(entry_url).name))
-        await asyncio.sleep(0.01)
