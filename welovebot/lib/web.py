@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass
-from functools import cached_property, wraps
+from functools import wraps
 from typing import Callable, ClassVar, Iterable, List, Literal, Optional
 
 from aiohttp import web, web_middlewares
@@ -21,6 +21,8 @@ class WebCog(Cog):
     # extra middlewares to append
     middlewares: ClassVar[List[web_middlewares._Middleware]] = []
 
+    _web_app: ClassVar[web.Application] = web.Application()
+
     def __post_init__(self):
         if self.url_root is None:
             raise AttributeError(f"{self.__class__.__name__} is missing 'root' path value")
@@ -32,8 +34,9 @@ class WebCog(Cog):
         self.host = self.config.get('HOST', '0.0.0.0')
         self.port = self.config.get('PORT', 8080)
 
-    @cached_property
-    def web_app(self) -> web.Application:
+        self.add_subapp()
+
+    def add_subapp(self) -> web.Application:
         middlewares = [web.normalize_path_middleware()] + self.middlewares
         app = web.Application(middlewares=middlewares)
 
@@ -44,13 +47,15 @@ class WebCog(Cog):
                     yield attr
 
         for handler in _route_attrs():
-            path = f'/{self.url_root}/{handler.path}/'
+            path = f'/{handler.path}/'
             logger.debug(f'[{self.__class__.__name__}] adding route: {handler.method} {path}')
             adder = getattr(app.router, f'add_{handler.method.lower()}')
             adder(path, handler)
 
         logger.debug('web app built')
-        return app
+
+        self._web_app.add_subapp(f'/{self.url_root}', app)
+        return self._web_app
 
     @classmethod
     def route(cls, method: MethodsT, path: str):
@@ -73,7 +78,7 @@ class WebCog(Cog):
 
     @Cog.task
     async def start(self):
-        runner = web.AppRunner(self.web_app)
+        runner = web.AppRunner(self._web_app)
 
         await runner.setup()
         self.site = web.TCPSite(runner, self.host, self.port)
