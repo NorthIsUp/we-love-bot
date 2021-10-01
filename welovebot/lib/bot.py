@@ -29,7 +29,7 @@ class Bot(commands.Bot):
     ):
         super().__init__(*args, **kwargs)
 
-        self.config_prefix = config_prefix
+        self.config_prefix = config_prefix or self.config.prefix
 
     @cached_property
     def config(self) -> Config:
