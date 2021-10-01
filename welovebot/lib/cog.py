@@ -39,6 +39,10 @@ TaskCallableT = Callable[..., Awaitable[None]]
 
 class BaseCog(commands.Cog):
     @property
+    def enabled(cls) -> bool:
+        return self.config.get('ENABLED', True)
+
+    @property
     def loop(self) -> asyncio.AbstractEventLoop:
         """helper to access the bot event loop"""
         return self.bot.loop
@@ -71,7 +75,7 @@ class BaseCog(commands.Cog):
             @cls.listener(listener)
             @wraps(func)
             async def wrapper(self: BaseCog, *args: Any, **kwargs: Any) -> None:
-                if not self.config.get('ENABLED', True):
+                if not self.enabled:
                     return cls.debug(f'[{func.__name__}:{listener}] disabled')
                 elif filter and filter(*args, **kwargs) is False:
                     return cls.debug(f'[{func.__name__}:{listener}] filtered (unbound)')

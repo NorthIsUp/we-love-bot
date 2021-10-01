@@ -90,11 +90,22 @@ class Bot(commands.Bot):
         ):
             pass
         elif isinstance(loadable, commands.Cog):
-            logger.info(f'- discovred Cog instance {loadable.__name__}.@{repr(loadable)}')
-            self.add_cog(loadable)
+            if getattr(loadable, 'enabled', True):
+                logger.info(
+                    f'- discovred Cog instance {loadable.__class__.__name__}@{repr(loadable)}'
+                )
+                self.add_cog(loadable)
+            else:
+                logger.info(
+                    f'- disabled Cog instance {loadable.__class__.__name__}@{repr(loadable)}'
+                )
         elif isinstance(loadable, type) and issubclass(loadable, commands.Cog):
-            logger.info(f'- discovred Cog class {loadable.__name__}@{repr(loadable)}')
-            self.add_cog(loadable(self))
+            loadable_instance = loadable(self)
+            if getattr(loadable_instance, 'enabled', True):
+                logger.info(f'- discovred Cog class {loadable.__name__}@{repr(loadable)}')
+                self.add_cog(loadable_instance)
+            else:
+                logger.info(f'- disabled Cog class {loadable.__name__}@{repr(loadable)}')
         elif isinstance(loadable, commands.Command):
             logger.info(f'- discovred Command {loadable}@{repr(loadable)}')
             self.add_command(loadable)
