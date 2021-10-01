@@ -18,6 +18,7 @@ from typing import (
     ChainMap,
     ClassVar,
     Dict,
+    Iterable,
     Optional,
     Sequence,
     Set,
@@ -25,8 +26,6 @@ from typing import (
     Union,
     cast,
 )
-
-from black import Iterable
 
 from welovebot import constants
 
