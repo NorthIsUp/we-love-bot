@@ -39,7 +39,7 @@ TaskCallableT = Callable[..., Awaitable[None]]
 
 class BaseCog(commands.Cog):
     @property
-    def enabled(cls) -> bool:
+    def enabled(self) -> bool:
         return self.config.get('ENABLED', True)
 
     @property
