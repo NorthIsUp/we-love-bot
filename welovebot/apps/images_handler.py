@@ -7,7 +7,6 @@ from asyncio import Semaphore
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from functools import cached_property
 from http.client import OK
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Union
@@ -35,14 +34,16 @@ class _BaseHandler(WebCog):
     _cache: LRUCache[str, io.BytesIO] = field(
         default_factory=lambda: LRUCache[str, io.BytesIO](128)
     )
+    _db: ClassVar[Optional[JsonConfig]] = None
 
-    @cached_property
+    def __post_init__(self):
+        _BaseHandler._db = _BaseHandler._db or JsonConfig(self.config['DB_PATH'])
+        return super().__post_init__()
+
+    @property
     def db(self) -> JsonConfig:
-        return JsonConfig(self.config['DB_PATH'])
-
-    @WebCog.route('GET', '/db')
-    async def show_db(self, request: Request) -> Response:
-        return Response(text=json.dumps(self.db.json, indent=2), status=OK)
+        assert self._db
+        return self._db
 
     @contextmanager
     def seen(self, key: str, id: Union[int, str]) -> float:
@@ -84,6 +85,10 @@ class _BaseHandler(WebCog):
             self.debug(f'cached file for url {url}')
 
         return self._cache[url]
+
+    @WebCog.route('GET', '/db')
+    async def show_db(self, request: Request) -> Response:
+        return Response(text=json.dumps(self.db.json, indent=2), status=OK)
 
 
 class ImagesDiscordHandler(_BaseHandler):
