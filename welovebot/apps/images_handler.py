@@ -13,7 +13,9 @@ from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Union
 
 import aiohttp
+import asyncstdlib as a
 from aiohttp.web import Request, Response
+from aiosmtplib import SMTP
 from cachetools import LRUCache
 
 from welovebot.lib.cog import Cog, CogConfigCheck
@@ -22,7 +24,10 @@ from welovebot.lib.web import WebCog
 
 
 @dataclass
-class ImagesHandler(WebCog):
+class _BaseHandler(WebCog):
+    class Config:
+        DB_PATH: str
+
     url_root: ClassVar[str] = 'images_handler'
     check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.RAISE
     _lock: Semaphore = field(default_factory=Semaphore)
@@ -30,16 +35,9 @@ class ImagesHandler(WebCog):
         default_factory=lambda: LRUCache[str, io.BytesIO](128)
     )
 
-    class Config:
-        SENDGRID_API_KEY: str
-        DB_PATH: str
-
-        SKYLIGHT_AUTH: str
-        SKYLIGHT_FRAME_IDS: List[str]
-
     @cached_property
     def db(self) -> JsonConfig:
-        return JsonConfig(self.config_safe.get('DB_PATH', '/tmp/tinybeans.json'))
+        return JsonConfig(self.config.get('DB_PATH', '/tmp/tinybeans.json'))
 
     @WebCog.route('GET', '/db')
     async def show_db(self, request: Request) -> Response:
@@ -86,6 +84,8 @@ class ImagesHandler(WebCog):
 
         return self._cache[url]
 
+
+class ImagesDiscordHandler(_BaseHandler):
     @Cog.task('on_image_with_caption')
     async def handle_discord_forward(
         self,
@@ -109,6 +109,12 @@ class ImagesHandler(WebCog):
             await self.bot.get_channel(channel).send(
                 caption, file=discord.File(file, Path(url).name)
             )
+
+
+class ImagesSkylightHandler(_BaseHandler):
+    class Config:
+        AUTH: str
+        FRAME_IDS: List[str]
 
     @Cog.task('on_image_with_caption')
     async def handle_skylight(
@@ -156,55 +162,61 @@ class ImagesHandler(WebCog):
                 ) as resp:
                     self.debug(f'{resp.status}: uploaded {url}')
 
-    # @a.cached_property
-    # async def _smtp_client(self, _client: SMTP = SMTP()) -> SMTP:
-    #     if not _client.is_connected:
-    #         async with self._lock:
-    #             await _client.connect(
-    #                 hostname='smtp.sendgrid.net',
-    #                 port=587,
-    #                 username='apikey',
-    #                 password=self.config_safe['SENDGRID_API_KEY'],
-    #                 start_tls=True,
-    #             )
-    #     return _client
 
-    # @Cog.task('on_image_with_caption')
-    # async def handle_email_forward(
-    #     self,
-    #     source: Cog,
-    #     url: str,
-    #     caption: Optional[str] = None,
-    #     **kwargs,
-    # ) -> None:
+@dataclass
+class ImagesEmailHandler(_BaseHandler):
+    class Config:
+        SENDGRID_API_KEY: str
 
-    #     if not (email_recipients := source.config_safe['EMAIL_RECIPIENTS']):
-    #         return self.error('recipients missing')
+    @a.cached_property
+    async def _smtp_client(self, _client: SMTP = SMTP()) -> SMTP:
+        if not _client.is_connected:
+            async with self._lock:
+                await _client.connect(
+                    hostname='smtp.sendgrid.net',
+                    port=587,
+                    username='apikey',
+                    password=self.config_safe['SENDGRID_API_KEY'],
+                    start_tls=True,
+                )
+        return _client
 
-    #     if not (email_from_addr := source.config_safe['EMAIL_FROM_ADDR']):
-    #         return self.error('from addr missing')
+    @Cog.task('on_image_with_caption')
+    async def handle_email_forward(
+        self,
+        source: Cog,
+        url: str,
+        caption: Optional[str] = None,
+        **kwargs,
+    ) -> None:
 
-    #     with self.seen('email_forward', url) as seen:
-    #         if seen:
-    #             return self.debug(f'already seen, skipping {url}')
+        if not (email_recipients := source.config_safe['EMAIL_RECIPIENTS']):
+            return self.error('recipients missing')
 
-    #         if not (file := await self.fetch_url_as_file(url)):
-    #             return self.info('invalid image for email send')
+        if not (email_from_addr := source.config_safe['EMAIL_FROM_ADDR']):
+            return self.error('from addr missing')
 
-    #         try:
-    #             from email.mime.image import MIMEImage
-    #             from email.mime.multipart import MIMEMultipart
+        with self.seen('email_forward', url) as seen:
+            if seen:
+                return self.debug(f'already seen, skipping {url}')
 
-    #             message = MIMEMultipart()
-    #             message['From'] = email_from_addr
-    #             message['Subject'] = caption or 'Hello World!'
-    #             message.attach(MIMEImage(file.getvalue()))
-    #         except TypeError as e:
-    #             return self.exception(e)
+            if not (file := await self.fetch_url_as_file(url)):
+                return self.info('invalid image for email send')
 
-    #         self.info(f'forwarding to {email_recipients}')
-    #         _client: SMTP = await self._smtp_client
-    #         results, msg = await _client.send_message(message, recipients=email_recipients)
-    #         for recipient, response in results.items():
-    #             self.debug(f'[{msg}] {recipient} got email {response}')
-    #         self.info(f'finished sendign to {email_recipients}')
+            try:
+                from email.mime.image import MIMEImage
+                from email.mime.multipart import MIMEMultipart
+
+                message = MIMEMultipart()
+                message['From'] = email_from_addr
+                message['Subject'] = caption or 'Hello World!'
+                message.attach(MIMEImage(file.getvalue()))
+            except TypeError as e:
+                return self.exception(e)
+
+            self.info(f'forwarding to {email_recipients}')
+            _client: SMTP = await self._smtp_client
+            results, msg = await _client.send_message(message, recipients=email_recipients)
+            for recipient, response in results.items():
+                self.debug(f'[{msg}] {recipient} got email {response}')
+            self.info(f'finished sendign to {email_recipients}')

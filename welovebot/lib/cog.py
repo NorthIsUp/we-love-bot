@@ -262,7 +262,7 @@ class BaseCog(commands.Cog):
         cls._logger().error(msg, *args, **kwargs)
 
     @classmethod
-    def exception(cls, msg: Union[str, Exception], *args: Any, **kwargs: Any) -> None:
+    def exception(cls, msg: Union[str, BaseException], *args: Any, **kwargs: Any) -> None:
         cls._logger().exception(msg, *args, **kwargs)
 
 
@@ -309,8 +309,12 @@ class Cog(BaseCog):
         return self.__class__.__name__
 
     @cached_property
-    def config(self) -> BaseConfig:
-        return ChainConfig((self.cog_config, self.bot_config))
+    def config(self) -> ChainConfig:
+        configs = [
+            CogConfig(self.bot, cls) for cls in self.__class__.__mro__ if hasattr(cls, 'Config')
+        ]
+
+        return ChainConfig((*configs, self.bot_config))
 
     @cached_property
     def config_safe(self) -> TypedChainConfig:
@@ -319,7 +323,7 @@ class Cog(BaseCog):
 
         try:
             return TypedChainConfig(
-                configs=(self.cog_config, self.bot_config),
+                configs=self.config.configs,
                 types=Config,
             )
         except Exception as e:

@@ -26,6 +26,8 @@ from typing import (
     cast,
 )
 
+from black import Iterable
+
 from welovebot import constants
 
 if TYPE_CHECKING:
@@ -81,6 +83,9 @@ class Config(ABC):
             self._log_default_msg(key)
             return default
 
+    def keys(self) -> Iterable[str]:
+        return self._keys()
+
     def _key(self, key: str) -> str:
         return key
 
@@ -91,6 +96,10 @@ class Config(ABC):
     def _setitem(self, key: str, value: str) -> None:
         """called by __setitem__"""
         raise RuntimeError(f'set item not supported for {self.__class__.__name__}')
+
+    def _keys(self) -> Iterable[str]:
+        """called by keys"""
+        raise RuntimeError(f'keys not supported for {self.__class__.__name__}')
 
 
 @dataclass
@@ -144,6 +153,9 @@ class ChainConfig(Config):
                 if c is self.configs[-1]:
                     raise
         assert False, 'this should not be reached'
+
+    def _keys(self) -> Iterable[str]:
+        return tuple(k for c in self.configs for k in c._keys())
 
 
 def _as_sequence(to: Type[Union[set, list, tuple]]) -> Callable[[str], Sequence[str]]:
@@ -240,6 +252,9 @@ class EnvConfig(PrefixConfig):
     def _setitem(self, key: str, value: str) -> None:
         self.overrides[key] = value
 
+    def _keys(self) -> Iterable[str]:
+        return tuple(k for k in environ.keys() if k.startswith(self.prefix))
+
 
 @dataclass
 class JsonConfig(Config):
@@ -317,6 +332,9 @@ class CogConfig(BotConfig):
     def __post_init__(self) -> None:
         super().__post_init__()
         self.prefix = self._join_prefix(self.prefix, self._snake_case(self.ext.__name__))
+
+    def _keys(self) -> Iterable[str]:
+        return self.ext.Config.__annotations__.keys()
 
 
 @dataclass
