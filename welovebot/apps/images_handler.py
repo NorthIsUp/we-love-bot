@@ -10,13 +10,10 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from http.client import OK
 from pathlib import Path
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, Dict, List, Optional, Union
 
 import aiohttp
-import asyncstdlib as a
-import discord
 from aiohttp.web import Request, Response
-from aiosmtplib import SMTP
 from cachetools import LRUCache
 
 from welovebot.lib.cog import Cog, CogConfigCheck
@@ -36,6 +33,9 @@ class ImagesHandler(WebCog):
     class Config:
         SENDGRID_API_KEY: str
         DB_PATH: str
+
+        SKYLIGHT_AUTH: str
+        SKYLIGHT_FRAME_IDS: List[str]
 
     @cached_property
     def db(self) -> JsonConfig:
@@ -110,55 +110,101 @@ class ImagesHandler(WebCog):
                 caption, file=discord.File(file, Path(url).name)
             )
 
-    @a.cached_property
-    async def _smtp_client(self, _client: SMTP = SMTP()) -> SMTP:
-        if not _client.is_connected:
-            async with self._lock:
-                await _client.connect(
-                    hostname='smtp.sendgrid.net',
-                    port=587,
-                    username='apikey',
-                    password=self.config_safe['SENDGRID_API_KEY'],
-                    start_tls=True,
-                )
-        return _client
-
     @Cog.task('on_image_with_caption')
-    async def handle_email_forward(
+    async def handle_skylight(
         self,
         source: Cog,
         url: str,
         caption: Optional[str] = None,
         **kwargs,
-    ) -> None:
-
-        if not (email_recipients := source.config_safe['EMAIL_RECIPIENTS']):
-            return self.error('recipients missing')
-
-        if not (email_from_addr := source.config_safe['EMAIL_FROM_ADDR']):
-            return self.error('from addr missing')
-
-        with self.seen('email_forward', url) as seen:
+    ):
+        with self.seen(f'skylight', url) as seen:
             if seen:
-                return self.debug(f'already seen, skipping {url}')
+                return
+
+            accpeted_extensions = (
+                'jpg,jpeg,png,gif,bmp,tif,tiff,heic,mpg,mp4,avi,mov,m4v,3gp,webm,mkv,3g2,zip'
+            )
+            if (ext := Path(url).suffix.strip('.')) not in accpeted_extensions:
+                return self.info(f"'{ext}' not an accepted extension")
 
             if not (file := await self.fetch_url_as_file(url)):
                 return self.info('invalid image for email send')
 
-            try:
-                from email.mime.image import MIMEImage
-                from email.mime.multipart import MIMEMultipart
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    'https://app.ourskylight.com/api/upload_urls',
+                    headers={
+                        'Content-Type': 'application/json',
+                        'Authorization': f'Basic {self.config_safe["SKYLIGHT_AUTH"]}',
+                    },
+                    data=json.dumps(
+                        {
+                            'ext': ext,
+                            'frame_ids': self.config_safe['SKYLIGHT_FRAME_IDS'],
+                            'caption': caption,
+                        }
+                    ),
+                ) as resp:
+                    data: Dict[str, str] = (await resp.json()).get('data', [{}])[0]
+                    url = data['url']
 
-                message = MIMEMultipart()
-                message['From'] = email_from_addr
-                message['Subject'] = caption or 'Hello World!'
-                message.attach(MIMEImage(file.getvalue()))
-            except TypeError as e:
-                return self.exception(e)
+                async with session.put(
+                    url,
+                    data=file,
+                    headers={'Content-Type': f'image/{ext}'},
+                ) as resp:
+                    self.debug(f'{resp.status}: uploaded {url}')
 
-            self.info(f'forwarding to {email_recipients}')
-            _client: SMTP = await self.__smtp_client
-            results, msg = await _client.send_message(message, recipients=email_recipients)
-            for recipient, response in results.items():
-                self.debug(f'[{msg}] {recipient} got email {response}')
-            self.info(f'finished sendign to {email_recipients}')
+    # @a.cached_property
+    # async def _smtp_client(self, _client: SMTP = SMTP()) -> SMTP:
+    #     if not _client.is_connected:
+    #         async with self._lock:
+    #             await _client.connect(
+    #                 hostname='smtp.sendgrid.net',
+    #                 port=587,
+    #                 username='apikey',
+    #                 password=self.config_safe['SENDGRID_API_KEY'],
+    #                 start_tls=True,
+    #             )
+    #     return _client
+
+    # @Cog.task('on_image_with_caption')
+    # async def handle_email_forward(
+    #     self,
+    #     source: Cog,
+    #     url: str,
+    #     caption: Optional[str] = None,
+    #     **kwargs,
+    # ) -> None:
+
+    #     if not (email_recipients := source.config_safe['EMAIL_RECIPIENTS']):
+    #         return self.error('recipients missing')
+
+    #     if not (email_from_addr := source.config_safe['EMAIL_FROM_ADDR']):
+    #         return self.error('from addr missing')
+
+    #     with self.seen('email_forward', url) as seen:
+    #         if seen:
+    #             return self.debug(f'already seen, skipping {url}')
+
+    #         if not (file := await self.fetch_url_as_file(url)):
+    #             return self.info('invalid image for email send')
+
+    #         try:
+    #             from email.mime.image import MIMEImage
+    #             from email.mime.multipart import MIMEMultipart
+
+    #             message = MIMEMultipart()
+    #             message['From'] = email_from_addr
+    #             message['Subject'] = caption or 'Hello World!'
+    #             message.attach(MIMEImage(file.getvalue()))
+    #         except TypeError as e:
+    #             return self.exception(e)
+
+    #         self.info(f'forwarding to {email_recipients}')
+    #         _client: SMTP = await self._smtp_client
+    #         results, msg = await _client.send_message(message, recipients=email_recipients)
+    #         for recipient, response in results.items():
+    #             self.debug(f'[{msg}] {recipient} got email {response}')
+    #         self.info(f'finished sendign to {email_recipients}')
