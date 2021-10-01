@@ -71,20 +71,20 @@ class BaseCog(commands.Cog):
             @cls.listener(listener)
             @wraps(func)
             async def wrapper(self: BaseCog, *args: Any, **kwargs: Any) -> None:
-                if filter and filter(*args, **kwargs) is False:
-                    cls.debug(f'skipping listener {listener}')
-                    return
-                if filter_method and filter_method(self, *args, **kwargs) is False:
-                    cls.debug(f'skipping listener {listener}')
-                    return
+                if not self.config.get('ENABLED', True):
+                    return cls.debug(f'[{func.__name__}:{listener}] disabled')
+                elif filter and filter(*args, **kwargs) is False:
+                    return cls.debug(f'[{func.__name__}:{listener}] filtered (unbound)')
+                elif filter_method and filter_method(self, *args, **kwargs) is False:
+                    return cls.debug(f'[{func.__name__}:{listener}] filtered (method)')
 
                 @wraps(func)
                 async def logging_func(self: BaseCog, *args: Any, **kwargs: Any) -> None:
-                    cls.debug(f'[{listener}] starting {func.__name__}')
+                    cls.debug(f'[{listener}-{func.__name__}] starting')
                     await func(self, *args, **kwargs)
-                    cls.debug(f'[{listener}] complete {func.__name__}')
+                    cls.debug(f'[{listener}-{func.__name__}] complete')
 
-                cls.debug(f'[{listener}] scheduling {func.__name__}')
+                cls.debug(f'[{listener}-{func.__name__}] scheduling')
                 await self.loop.create_task(logging_func(self, *args, **kwargs))
 
             return wrapper

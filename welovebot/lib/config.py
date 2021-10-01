@@ -117,6 +117,10 @@ class PrefixConfig(Config, ABC):
     def _join_prefix(*s: str) -> KeyT:
         return KeyT(('__'.join(s)).upper())
 
+    @staticmethod
+    def _unjoin_prefix(s: KeyT) -> str:
+        return str(s.split('__')[-1])
+
     @cached_property
     def prefix(self):
         raise NotImplementedError('provide a prefix')
@@ -129,6 +133,11 @@ class PrefixConfig(Config, ABC):
             return key
         return self._join_prefix(self.prefix, key)
 
+    def _unkey(self, key: Union[str, KeyT]) -> str:
+        if not isinstance(key, KeyT):
+            return key
+        return self._unjoin_prefix(key)
+
 
 @dataclass
 class ChainConfig(Config):
@@ -139,7 +148,7 @@ class ChainConfig(Config):
         for c in self.configs:
             try:
                 return c[key]
-            except KeyError as e:
+            except KeyError:
                 if c is self.configs[-1]:
                     raise
         assert False, 'this should not be reached'
@@ -335,6 +344,16 @@ class CogConfig(BotConfig):
 
     def _keys(self) -> Iterable[str]:
         return self.ext.Config.__annotations__.keys()
+
+    def _getitem(self, key: str) -> str:
+        try:
+            return super()._getitem(key)
+        except KeyError as e:
+            # fail over to default in Config if set
+            try:
+                return getattr(self.ext.Config, self._unkey(key))
+            except AttributeError:
+                raise e
 
 
 @dataclass

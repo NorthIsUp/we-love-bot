@@ -17,6 +17,10 @@ _NO_SLASH_ERR = "may not contain a '/'"
 
 @dataclass
 class WebCog(Cog):
+    class Config:
+        HOST: str = '0.0.0.0'
+        PORT: int = 8080
+
     url_root: ClassVar[Optional[str]] = None
 
     # extra middlewares to append
@@ -84,8 +88,8 @@ class WebCog(Cog):
 
             logger.info('starting site')
 
-            host: str = self.config.get('HOST', '0.0.0.0')
-            port: int = self.config.get('PORT', 8080)
+            host: str = self.config['HOST']
+            port: int = self.config['PORT']
 
             runner = web.AppRunner(self._web_app)
             await runner.setup()

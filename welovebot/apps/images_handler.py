@@ -14,6 +14,7 @@ from typing import ClassVar, Dict, List, Optional, Union
 
 import aiohttp
 import asyncstdlib as a
+import discord
 from aiohttp.web import Request, Response
 from aiosmtplib import SMTP
 from cachetools import LRUCache
@@ -26,7 +27,7 @@ from welovebot.lib.web import WebCog
 @dataclass
 class _BaseHandler(WebCog):
     class Config:
-        DB_PATH: str
+        DB_PATH: str = '/tmp/tinybeans.json'
 
     url_root: ClassVar[str] = 'images_handler'
     check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.RAISE
@@ -37,7 +38,7 @@ class _BaseHandler(WebCog):
 
     @cached_property
     def db(self) -> JsonConfig:
-        return JsonConfig(self.config.get('DB_PATH', '/tmp/tinybeans.json'))
+        return JsonConfig(self.config['DB_PATH'])
 
     @WebCog.route('GET', '/db')
     async def show_db(self, request: Request) -> Response:
@@ -142,12 +143,12 @@ class ImagesSkylightHandler(_BaseHandler):
                     'https://app.ourskylight.com/api/upload_urls',
                     headers={
                         'Content-Type': 'application/json',
-                        'Authorization': f'Basic {self.config_safe["SKYLIGHT_AUTH"]}',
+                        'Authorization': f'Basic {self.config_safe["AUTH"]}',
                     },
                     data=json.dumps(
                         {
                             'ext': ext,
-                            'frame_ids': self.config_safe['SKYLIGHT_FRAME_IDS'],
+                            'frame_ids': self.config_safe['FRAME_IDS'],
                             'caption': caption,
                         }
                     ),
@@ -166,6 +167,7 @@ class ImagesSkylightHandler(_BaseHandler):
 @dataclass
 class ImagesEmailHandler(_BaseHandler):
     class Config:
+        ENABLED: bool = False
         SENDGRID_API_KEY: str
 
     @a.cached_property
