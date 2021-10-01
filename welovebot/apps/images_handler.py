@@ -26,7 +26,7 @@ from welovebot.lib.web import WebCog
 @dataclass
 class _BaseHandler(WebCog):
     class Config:
-        DB_PATH: str = '/tmp/tinybeans.json'
+        DB_PATH: str
 
     url_root: ClassVar[str] = 'images_handler'
     check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.RAISE
@@ -38,6 +38,7 @@ class _BaseHandler(WebCog):
 
     def __post_init__(self):
         _BaseHandler._db = _BaseHandler._db or JsonConfig(self.config['DB_PATH'])
+        print(JsonConfig.json)
         return super().__post_init__()
 
     @property
