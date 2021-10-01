@@ -17,7 +17,7 @@ class BotStatus(Cog):
     @Cog.on_ready
     async def starting_up(self):
         if self.channel is not None:
-            await self.channel.send(f'`{self.bot.config_prefix}` starting up')
+            await self.channel.send(f'🚀 `{self.bot.config_prefix}` starting up')
 
     @Cog.on_ready
     async def shutting_down(self):
@@ -26,4 +26,4 @@ class BotStatus(Cog):
                 while True:
                     await sleep(30000)
             finally:
-                await self.channel.send(f'`{self.bot.config_prefix}` shutting down')
+                await self.channel.send(f'🛑 `{self.bot.config_prefix}` shutting down')
