@@ -3,7 +3,13 @@ from logging import getLogger
 from os import environ
 from pathlib import Path
 
-from IPython.core import ultratb
+try:
+    from rich import traceback
+
+    traceback.install
+except ImportError:
+    print('rich not available', file=sys.stderr)
+
 
 # fix the import path
 welovebot_root = Path(__file__).parent
@@ -15,12 +21,6 @@ from welovebot.lib.bot import Bot
 from welovebot.lib.config import configure_logging
 
 logger = getLogger(__name__)
-
-sys.excepthook = ultratb.FormattedTB(
-    mode='Verbose',
-    color_scheme='Linux',
-    call_pdb=bool(environ.get('CALL_PDB')),
-)
 
 
 def parse_args():

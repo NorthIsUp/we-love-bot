@@ -20,6 +20,7 @@ from cachetools import LRUCache
 
 from welovebot.lib.cog import Cog, CogConfigCheck
 from welovebot.lib.config import JsonConfig
+from welovebot.lib.frames.nixplay import NixPhoto, NixPlay
 from welovebot.lib.web import WebCog
 
 
@@ -168,6 +169,40 @@ class ImagesSkylightHandler(_BaseHandler):
                     headers={'Content-Type': f'image/{ext}'},
                 ) as resp:
                     self.debug(f'{resp.status}: uploaded {url}')
+
+
+@dataclass
+class ImagesNixplayHandler(_BaseHandler):
+
+    client = NixPlay()
+
+    class Config:
+        USERNAME: str
+        PASSWORD: str
+        PLAYLIST_IDS: List[int]
+
+    @Cog.task('on_image_with_caption')
+    async def handle_nixplay(
+        self,
+        source: Cog,
+        url: str,
+        caption: Optional[str] = None,
+        **kwargs: str,
+    ):
+        with self.seen(f'nixplay', url) as seen:
+            if seen:
+                return
+
+            accpeted_extensions = (
+                'jpg,jpeg,png,gif,bmp,tif,tiff,heic,mpg,mp4,avi,mov,m4v,3gp,webm,mkv,3g2,zip'
+            )
+            if (ext := Path(url).suffix.strip('.')) not in accpeted_extensions:
+                return self.info(f"'{ext}' not an accepted extension")
+
+            self.client.login(self.config_safe['USERNAME'], self.config_safe['PASSWORD'])
+
+            for playlist_id in self.config_safe['PLAYLIST_IDS']:
+                self.client.add_photos(playlist_id, NixPhoto(photo_url=url, caption=caption))
 
 
 @dataclass
