@@ -61,7 +61,7 @@ class NixPlay:
         }
 
     def login(self, user: str, password: str):
-        if self.user:
+        if self.user and self.csrftok:
             return
 
         self.user = f'{user}@mynixplay.com'
@@ -102,11 +102,8 @@ class NixPlay:
             data=data,
             allow_redirects=False,
         )
-        # data = dump.dump_all(r)
-        # print(data.decode('utf-8'))
 
         self.cookies = r.cookies
-        # j - json.loads(r.text)
 
         # save the CSRF token
         self.csrftok = cast(Optional[str], r.cookies.get('prod.csrftoken'))
