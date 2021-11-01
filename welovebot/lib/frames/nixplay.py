@@ -61,6 +61,9 @@ class NixPlay:
         }
 
     def login(self, user: str, password: str):
+        if self.user:
+            return
+
         self.user = f'{user}@mynixplay.com'
 
         data = {
