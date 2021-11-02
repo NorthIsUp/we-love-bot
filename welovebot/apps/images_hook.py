@@ -68,6 +68,7 @@ class ImagesHook(WebCog):
                 source=self,
                 url=url,
                 discord_channel=params.channel,
+                thumbnail_url=None,
             )
             response[url] = OK
 

@@ -193,9 +193,7 @@ class ImagesNixplayHandler(_BaseHandler):
             if seen:
                 return
 
-            accpeted_extensions = (
-                'jpg,jpeg,png,gif,bmp,tif,tiff,heic,mpg,mp4,avi,mov,m4v,3gp,webm,mkv,3g2,zip'
-            )
+            accpeted_extensions = 'jpg,jpeg,png,gif,bmp,tif,tiff,heic'
             if (ext := Path(url).suffix.strip('.')) not in accpeted_extensions:
                 return self.info(f"'{ext}' not an accepted extension")
 

@@ -18,17 +18,17 @@ PhotoT = bytes
 class NixPhoto:
     photo_url: str
     thumbnail_url: str = ''
-    orientation: str = ''
+    orientation: int = 0
     caption: str = ''
 
     def __post_init__(self):
         self.thumbnail_url = self.thumbnail_url or self.photo_url
 
-    def serialize(self) -> Dict[str, str]:
+    def serialize(self) -> SDictT:
         return {
             'photoUrl': self.photo_url,
             'thumbnailUrl': self.thumbnail_url,
-            'orientation': self.orientation,
+            'orientation': self.orientation,  # = 1 if photo["width_o"] < photo["height_o"] else 0
             'caption': self.caption,
         }
 
@@ -174,6 +174,9 @@ class NixPlay:
         return self.post_api_v3(
             f'playlists/{playlist_id}/items', {'items': [p.serialize() for p in photos]}
         )
+
+    def set_attrs(self, photo_id: IdT, caption):
+        self.patch_api_v3(f'pictures/{photo_id}/attrs', {'caption': caption})
 
     # photos can be a list or a single item
     # def delPlayListPhotos(self, playlist_id: IdT, photos: Union[NixPhoto, Iterable[NixPhoto]]):
