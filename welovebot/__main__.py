@@ -1,26 +1,28 @@
 import sys
+from argparse import ArgumentParser
 from logging import getLogger
 from os import environ
 from pathlib import Path
 
+logger = getLogger(__name__)
+
 try:
-    from rich import traceback
-
+    from rich import pretty, traceback
     traceback.install(show_locals=True)
-except ImportError:
-    print('rich not available', file=sys.stderr)
+    pretty.install()
 
+    logger.info('using rich output')
+except ImportError:
+    logger.info('rich not available')
 
 # fix the import path
 welovebot_root = Path(__file__).parent
 sys.path.insert(0, str(welovebot_root.parent))
-from argparse import ArgumentParser
 
+# finish local imports
 from welovebot import constants
 from welovebot.lib.bot import Bot
 from welovebot.lib.config import configure_logging
-
-logger = getLogger(__name__)
 
 
 def parse_args():

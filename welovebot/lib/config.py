@@ -281,7 +281,13 @@ class JsonConfig(Config):
                 json.dump({}, f)
 
         with self.path.open() as f:
-            j = json.load(f)
+            try:
+                j = json.load(f)
+            except json.decoder.JSONDecodeError as e:
+                print(e)
+                print(f.readlines())
+                j = {}
+
             if not isinstance(j, dict):
                 raise TypeError('json config must be a dict')
             return cast(Dict[str, Any], j)
