@@ -21,8 +21,9 @@ from typing import (
     Union,
 )
 
-from discord.ext import commands
-from discord_slash import cog_ext
+from nextcord.ext import commands
+
+# from discord_slash import cog_ext
 from redis import StrictRedis
 
 from .config import BotConfig, ChainConfig, CogConfig
@@ -178,32 +179,32 @@ class BaseCog(commands.Cog):
 
         return decorator
 
-    @classmethod
-    def slash(
-        cls,
-        *,
-        name: str = None,
-        description: str = None,
-        guild_ids: List[int] = None,
-        options: List[dict] = None,
-        connector: dict = None,
-    ):
-        def decorator(func):
-            @cog_ext.cog_slash(
-                name=name,
-                description=description,
-                guild_ids=guild_ids,
-                options=options,
-                connector=connector,
-            )
-            @wraps(func)
-            def wrapper(self, *args, **kwargs):
-                cls.debug(f'handling slash command {func.__name__}')
-                return func(self, *args, **kwargs)
+    # @classmethod
+    # def slash(
+    #     cls,
+    #     *,
+    #     name: str = None,
+    #     description: str = None,
+    #     guild_ids: List[int] = None,
+    #     options: List[dict] = None,
+    #     connector: dict = None,
+    # ):
+    #     def decorator(func):
+    #         @cog_ext.cog_slash(
+    #             name=name,
+    #             description=description,
+    #             guild_ids=guild_ids,
+    #             options=options,
+    #             connector=connector,
+    #         )
+    #         @wraps(func)
+    #         def wrapper(self, *args, **kwargs):
+    #             cls.debug(f'handling slash command {func.__name__}')
+    #             return func(self, *args, **kwargs)
 
-            return wrapper
+    #         return wrapper
 
-        return decorator
+    #     return decorator
 
     @classmethod
     def slash_subcommand(

@@ -10,8 +10,9 @@ from types import ModuleType
 from typing import TYPE_CHECKING, List, Optional, Sequence, Union
 
 import discord
-from discord.ext import commands
-from discord_slash import SlashCommand
+from nextcord.ext import commands
+
+# from discord_slash import SlashCommand
 
 if TYPE_CHECKING:
     from .config import Config
@@ -42,15 +43,15 @@ class Bot(commands.Bot):
     def config_env(self) -> Config:
         """config for the bot, accessable via __getitem__ or get(key, default)"""
 
-    @cached_property
-    def slash(self) -> SlashCommand:
-        """use as a decorator to mark functions as slash commands"""
-        return SlashCommand(
-            self,
-            application_id=self.application_id,
-            sync_commands=True,
-            override_type=True,
-        )
+    # @cached_property
+    # def slash(self) -> SlashCommand:
+    #     """use as a decorator to mark functions as slash commands"""
+    #     return SlashCommand(
+    #         self,
+    #         application_id=self.application_id,
+    #         sync_commands=True,
+    #         override_type=True,
+    #     )
 
     def discover_extensions(self, *paths_or_mods: Union[Path, str]):
         """load all cogs under path"""

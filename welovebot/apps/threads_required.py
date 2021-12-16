@@ -1,7 +1,7 @@
 from functools import cached_property
 from typing import ClassVar, Optional, Set
 
-from discord import Message
+from nextcord import Message
 
 from welovebot.lib.cog import Cog
 

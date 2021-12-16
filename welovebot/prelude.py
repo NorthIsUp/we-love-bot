@@ -1,9 +1,9 @@
 from typing import Union
 
 import discord.abc as d_abc
-from discord import Guild, Member, User
-from discord.ext.commands import Context
 from discord_slash import SlashContext
+from nextcord import Guild, Member, User
+from nextcord.ext.commands import Context
 
 from .lib.cog import Cog
 

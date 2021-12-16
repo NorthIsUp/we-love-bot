@@ -1,7 +1,7 @@
 import typing
 
 import discord
-from discord.ext import commands
+from nextcord.ext import commands
 
 from welovebot.lib.cog import Cog
 
