@@ -62,7 +62,7 @@ docker-run: docker-build dockerenv
 		-e WELOVEBOT__CONFIG_PREFIX=WELOVEBOT \
 		-e WELOVEBOT__DISCORD_TOKEN=${WELOVEBOT__DISCORD_TOKEN} \
 		-p 8080:80 \
-		$(NAME):$(TAG)
+		$(NAME):$(TAG) $(ARGS)
 
 clean: check
 	-@rm -fv requirements*.txt
