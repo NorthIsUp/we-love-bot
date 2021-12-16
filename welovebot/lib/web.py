@@ -52,7 +52,7 @@ class WebCog(Cog):
 
         for handler in _route_attrs():
             path = f'/{handler.path}/'
-            logger.debug(f'[{self.__class__.__name__}] adding route: {handler.method} {path}')
+            logger.debug(f'[{self.__class__.__name__}] adding route: {handler.method} /{self.url_root}{path}')
             adder = getattr(app.router, f'add_{handler.method.lower()}')
             adder(path, handler)
 

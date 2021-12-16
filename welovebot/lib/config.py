@@ -27,6 +27,8 @@ from typing import (
     cast,
 )
 
+from redis import Redis, StrictRedis
+
 from welovebot import constants
 
 if TYPE_CHECKING:
@@ -328,6 +330,30 @@ class JsonConfig(Config):
                 self.json[key] = default
         return self.json[key]
 
+
+@dataclass
+class RedisConfig(Config):
+    # redis://[[username]:[password]]@localhost:6379/0
+    # rediss://[[username]:[password]]@localhost:6379/0
+    # unix://[[username]:[password]]@/path/to/socket.sock?db=0
+    redis_url: str
+    logging: ClassVar[bool] = False
+
+    @cached_property
+    def client(self) -> Redis[bytes]:
+        return Redis.from_url(self.redis_url)
+
+    def _getitem(self, key: str) -> str:
+        ret: Optional[bytes] = self.client.get(key)
+        if not ret:
+            raise KeyError(f'{key} not in config')
+        return ret.decode()
+
+    def _setitem(self, key: str, value: str) -> None:
+        self.client.set(key, value)
+
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        self.client.setnx(key, default)
 
 @dataclass
 class BotConfig(EnvConfig):

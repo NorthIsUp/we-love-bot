@@ -24,10 +24,11 @@ class Tinybeans(Cog):
         EMAIL_RECIPIENTS: Set[str]
         EMAIL_FROM_ADDR: str
         INTERVAL: int
+        LAST_N_DAYS: int = 15
 
     @cached_property
     def last_sumthing(self) -> datetime:
-        return datetime.utcnow() - timedelta(days=15)
+        return datetime.utcnow() - timedelta(days=int(self.config_safe['LAST_N_DAYS']))
 
     @a.cached_property
     async def children(self) -> Sequence[TinybeanChild]:
