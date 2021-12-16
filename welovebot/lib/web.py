@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import asyncio
 import logging
+from abc import ABC
 from asyncio import Semaphore
 from dataclasses import dataclass
 from functools import wraps
-from typing import Callable, ClassVar, Iterable, List, Literal, Optional
+from typing import Any, Callable, ClassVar, Iterable, List, Literal, Optional
 
 from aiohttp import web, web_middlewares
 
@@ -13,6 +16,10 @@ logger = logging.getLogger(__name__)
 MethodsT = Literal['CONNECT', 'HEAD', 'GET', 'DELETE', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'TRACE']
 
 _NO_SLASH_ERR = "may not contain a '/'"
+
+
+HandlerT = Callable[[web.Request], web.Response]
+
 
 
 @dataclass
@@ -44,7 +51,7 @@ class WebCog(Cog):
         middlewares = [web.normalize_path_middleware()] + self.middlewares
         app = web.Application(middlewares=middlewares)
 
-        def _route_attrs() -> Iterable[Callable]:
+        def _route_attrs() -> Iterable[HandlerT]:
             # check attrs but skip the base ones to avoid property side effects
             for name in {*dir(self)} - {'web_app', *dir(Cog)}:
                 if getattr(attr := getattr(self, name), 'is_route', False):
@@ -67,7 +74,7 @@ class WebCog(Cog):
         if '/' in path:
             raise ValueError(f"'{path}' {_NO_SLASH_ERR}")
 
-        def decorator(func) -> Callable[[web.Request], web.Response]:
+        def decorator(func: HandlerT) -> HandlerT:
             @wraps(func)
             async def wrapper(self, request: web.Request) -> web.Response:
                 return await func(self, request)
