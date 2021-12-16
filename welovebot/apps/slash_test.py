@@ -1,4 +1,4 @@
-# import discord
+# import nextcord
 
 # from welovebot.prelude import *
 
@@ -9,12 +9,12 @@
 
 #     @Cog.slash(name='test')
 #     async def _test(self, ctx: SlashContext):
-#         embed = discord.Embed(title='embed test')
+#         embed = nextcord.Embed(title='embed test')
 #         await ctx.send(content='test', embeds=[embed])
 
 #     @Cog.slash(name='test2')
 #     async def _test(self, ctx: SlashContext):
-#         embed = discord.Embed(title='embed test')
+#         embed = nextcord.Embed(title='embed test')
 #         await ctx.send(content='test2', embeds=[embed])
 
 #     @Cog.slash_subcommand(base='test-group', name='echo')
@@ -22,5 +22,5 @@
 #         await ctx.send(content=text)
 
 #     @Cog.command()
-#     async def test3(self, ctx, *, member: discord.Member = None):
+#     async def test3(self, ctx, *, member: nextcord.Member = None):
 #         await ctx.send('hello there')

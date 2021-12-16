@@ -14,6 +14,7 @@ from typing import ClassVar, Dict, List, Optional, Union
 import aiohttp
 import asyncstdlib as a
 import discord
+import nextcord
 from aiohttp.web import Request, Response
 from aiosmtplib import SMTP
 from cachetools import LRUCache
@@ -115,7 +116,7 @@ class ImagesDiscordHandler(_BaseHandler):
 
             self.info(f'posting file: {caption + " " if caption else ""}{url}')
             await self.bot.get_channel(channel).send(
-                caption, file=discord.File(file, Path(url).name)
+                caption, file=nextcord.File(file, Path(url).name)
             )
 
 
