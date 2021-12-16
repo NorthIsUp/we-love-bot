@@ -27,9 +27,11 @@ class Tinybeans(Cog):
         LAST_N_DAYS: int = 15
 
     @cached_property
-    def last_n_days(self) -> datetime:
-        last_n_days = datetime.utcnow() - timedelta(days=int(self.config_safe['LAST_N_DAYS']))
-        return last_n_days
+    def scrape_after_date(self) -> datetime:
+        last_n_days = int(self.config_safe['LAST_N_DAYS'])
+        scrape_after_date = datetime.utcnow() - timedelta(days=last_n_days)
+        self.info(f'using the last {last_n_days} days, since {scrape_after_date}', )
+        return scrape_after_date
 
     @a.cached_property
     async def children(self) -> Sequence[TinybeanChild]:
@@ -43,7 +45,7 @@ class Tinybeans(Cog):
 
     async def entries(self) -> AsyncGenerator[TinybeanEntry, None]:
         for c in await self.children:
-            async for entry in self.tb.get_entries(c, limit=self.last_n_days):
+            async for entry in self.tb.get_entries(c, limit=self.scrape_after_date):
                 yield entry
 
     @Cog.task('on_ready')
