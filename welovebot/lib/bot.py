@@ -9,7 +9,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING, List, Optional, Sequence, Union
 
-import discord
+import nextcord
 from nextcord.ext import commands
 
 # from discord_slash import SlashCommand
@@ -119,7 +119,7 @@ class Bot(commands.Bot):
     async def on_ready(self) -> None:
         logger.debug('Logged on as {0}!'.format(self.user))
 
-    async def send_message(self, message: discord.Message, response: str, img_url: str = None):
+    async def send_message(self, message: nextcord.Message, response: str, img_url: str = None):
         """helper for sending messages in a channel with a typing indicator"""
         for small_response in (r.strip() for r in response.split('\n\n') if r.strip()):
             await message.channel.trigger_typing()

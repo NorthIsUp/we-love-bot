@@ -12,7 +12,7 @@ from typing import AsyncGenerator, ClassVar, Dict, Optional, Sequence, Set, Unio
 
 import aiohttp
 import asyncstdlib as a
-import discord
+import nextcord
 from aiosmtplib import SMTP
 from pytinybeans.pytinybeans import PyTinybeans, TinybeanChild, TinybeanEntry
 
@@ -47,7 +47,7 @@ class Tinybeans(Cog):
         return datetime.utcnow() - timedelta(days=15)
 
     @cached_property
-    def channel(self) -> discord.TextChannel:
+    def channel(self) -> nextcord.TextChannel:
         return self.bot.get_channel(self.config_safe['CHANNEL'])
 
     async def login(self) -> bool:
@@ -113,7 +113,7 @@ class Tinybeans(Cog):
             await self.channel.send(entry.caption)
         elif file is not None:
             self.info(f'posting file: {entry.caption + " " if entry.caption else ""}{entry.url}')
-            file = discord.File(file, Path(entry.url).name)
+            file = nextcord.File(file, Path(entry.url).name)
             await self.channel.send(entry.caption, file=file)
         else:
             raise RuntimeError(f'invalid entry {entry}')

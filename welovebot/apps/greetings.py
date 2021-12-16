@@ -1,4 +1,4 @@
-import discord
+import nextcord
 
 from welovebot.prelude import *
 
@@ -15,7 +15,7 @@ class Greetings(Cog):
             await channel.send('Welcome {0.mention}.'.format(member))
 
     @Cog.command()
-    async def hello(self, ctx: Context, *, member: discord.Member = None):
+    async def hello(self, ctx: Context, *, member: nextcord.Member = None):
         """Says hello"""
         member = member or ctx.author
         if self._last_member is None or self._last_member.id != member.id:

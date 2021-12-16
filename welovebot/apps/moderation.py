@@ -1,6 +1,6 @@
 import typing
 
-import discord
+import nextcord
 from nextcord.ext import commands
 
 from welovebot.lib.cog import Cog
@@ -10,7 +10,7 @@ class Moderation(Cog):
     @Cog.command()
     async def ban(
         ctx,
-        members: commands.Greedy[discord.Member],
+        members: commands.Greedy[nextcord.Member],
         delete_days: typing.Optional[int] = 0,
         *,
         reason: str,

@@ -6,7 +6,7 @@ from pathlib import Path
 try:
     from rich import traceback
 
-    traceback.install
+    traceback.install(show_locals=True)
 except ImportError:
     print('rich not available', file=sys.stderr)
 
