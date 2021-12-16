@@ -1,0 +1,3 @@
+-r requirements.in
+
+ipython~=7.26.0

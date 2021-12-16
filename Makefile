@@ -18,7 +18,7 @@ all: install
 %.txt: %.in
 	@pip-compile -v --output-file $@ $<
 
-dev.txt: main.txt
+dev: requirements-dev.txt
 
 check:
 	@which pip-compile > /dev/null
@@ -29,7 +29,7 @@ $(REQ_SYNC_TARGETS): sync-%: %.txt
 $(REQ_UPGRADE_TARGETS): upgrade-%: %.in
 	@pip-compile --upgrade $<
 
-upgrade-dev: upgrade-main
+upgrade: upgrade-requirements
 
 install: $(REQ_OUTPUTS)
 	@pip install -r $<

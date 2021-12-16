@@ -1,15 +1,14 @@
-aiohttp~=3.8.0
-aiosmtplib~=1.1.6
-asyncstdlib~=3.9.2
 # discord-py-slash-command~=1.1.2
-flask~=1.1.2
+
 git+git://github.com/NorthIsUp/pytinybeans#egg=pytinybeans
+
+aiohttp~=3.8.1
+aiosmtplib~=1.1.6
+asyncstdlib~=3.10.2
 inflection~=0.5.1
-ipython~=7.26.0
-# git+git://github.com/Rapptz/discord.py.git#egg=discord.py
 nextcord
 redis~=4.0.2
 requests~=2.25.0
-rich~=10.12.0
-toolz~=0.11.0
+rich~=10.16.0
+toolz~=0.11.2
 yagmail~=0.14.256

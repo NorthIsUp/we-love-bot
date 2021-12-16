@@ -1,0 +1,5 @@
+[tool.pycln]
+all = true
+
+[tool.isort]
+profile = "black"
