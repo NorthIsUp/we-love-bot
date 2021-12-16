@@ -4,9 +4,10 @@ asyncstdlib~=3.9.2
 # discord-py-slash-command~=1.1.2
 flask~=1.1.2
 git+git://github.com/NorthIsUp/pytinybeans#egg=pytinybeans
-git+git://github.com/Rapptz/discord.py.git#egg=discord.py
 inflection~=0.5.1
 ipython~=7.26.0
+# git+git://github.com/Rapptz/discord.py.git#egg=discord.py
+nextcord
 redis~=3.5.3
 requests~=2.25.0
 rich~=10.12.0
