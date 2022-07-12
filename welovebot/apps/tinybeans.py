@@ -11,7 +11,7 @@ from pytinybeans.pytinybeans import PyTinybeans, TinybeanChild, TinybeanEntry
 from welovebot.lib.cog import Cog, CogConfigCheck
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Tinybeans(Cog):
     tb: PyTinybeans = field(default_factory=PyTinybeans)
     check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.RAISE
@@ -30,7 +30,9 @@ class Tinybeans(Cog):
     def scrape_after_date(self) -> datetime:
         last_n_days = int(self.config_safe['LAST_N_DAYS'])
         scrape_after_date = datetime.utcnow() - timedelta(days=last_n_days)
-        self.info(f'using the last {last_n_days} days, since {scrape_after_date}', )
+        self.info(
+            f'using the last {last_n_days} days, since {scrape_after_date}',
+        )
         return scrape_after_date
 
     @a.cached_property
@@ -59,5 +61,10 @@ class Tinybeans(Cog):
             self.info(f'handling entry: {entry.id}')
             if entry.is_photo or entry.is_video:
                 self.dispatch(
-                    'image_with_caption', source=self, url=entry.url, caption=entry.caption
+                    'image_with_caption',
+                    source=self,
+                    url=entry.url,
+                    caption=entry.caption,
+                    timestamp=entry.timestamp,
+                    uuid=entry.uuid,
                 )

@@ -8,6 +8,7 @@ logger = getLogger(__name__)
 
 try:
     from rich import pretty, traceback
+
     traceback.install(show_locals=True)
     pretty.install()
 
@@ -25,15 +26,19 @@ from welovebot.lib.bot import Bot
 from welovebot.lib.config import configure_logging
 
 
+def parse_apps_env_var():
+    apps_str = environ.get(constants.WELOVEBOT_APPS_ENVVAR, constants.WELOVEBOT_APPS_DEFAULT)
+    apps_str = ','.join(apps_str.split())
+    apps_str = apps_str.split(',')
+    return [app.strip() for app in apps_str if app.strip()]
+
+
 def parse_args():
     parser = ArgumentParser()
-    apps_default = [
-        _.strip()
-        for _ in environ.get(
-            constants.WELOVEBOT_APPS_ENVVAR, constants.WELOVEBOT_APPS_DEFAULT
-        ).split(',')
-    ]
-    parser.add_argument('--app', dest='apps', nargs='*', action='extend', default=apps_default)
+    print(parse_apps_env_var())
+    parser.add_argument(
+        '--app', dest='apps', nargs='*', action='extend', default=parse_apps_env_var()
+    )
     return parser.parse_args()
 
 

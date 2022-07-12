@@ -39,7 +39,7 @@ pre-commit:
 	pre-commit install
 
 dockerenv: .envrc
-	rm dockerenv
+	: rm dockerenv
 	env | grep 'NORTHISBOT' \
 		| gawk ' \
 			/^NORTHISBOT/ {print $$0} \
@@ -56,9 +56,10 @@ docker-build: Dockerfile
 docker-build-no-cache: Dockerfile
 	docker build --no-cache -t $(NAME):$(TAG) -f $< .
 
-docker-run: docker-build dockerenv
+docker-run: docker-build # dockerenv
 	docker run \
-		--env-file dockerenv \
+		--env-file .env \
+		-v ~/tmp/we-love-bot:/data \
 		-e WELOVEBOT__CONFIG_PREFIX=WELOVEBOT \
 		-e WELOVEBOT__DISCORD_TOKEN=${WELOVEBOT__DISCORD_TOKEN} \
 		-p 8080:80 \

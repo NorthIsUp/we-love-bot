@@ -21,7 +21,6 @@ _NO_SLASH_ERR = "may not contain a '/'"
 HandlerT = Callable[[web.Request], web.Response]
 
 
-
 @dataclass
 class WebCog(Cog):
     class Config:
@@ -32,10 +31,11 @@ class WebCog(Cog):
 
     # extra middlewares to append
     middlewares: ClassVar[List[web_middlewares._Middleware]] = []
+    concurrency: ClassVar[int] = 10
 
     _web_app: ClassVar[web.Application] = web.Application()
     _site: ClassVar[Optional[web.TCPSite]] = None
-    _lock: ClassVar[Semaphore] = Semaphore()
+    _lock: Semaphore = Semaphore()
 
     def __post_init__(self):
         if self.url_root is None:
@@ -44,6 +44,9 @@ class WebCog(Cog):
         self.url_root = self.url_root.strip('/')
         if '/' in self.url_root:
             raise ValueError(f'{self.__class__.__name__}.url_root {_NO_SLASH_ERR}')
+
+        if self.concurrency > 1:
+            self._lock = Semaphore(self.concurrency)
 
         self.add_subapp()
 
@@ -59,7 +62,9 @@ class WebCog(Cog):
 
         for handler in _route_attrs():
             path = f'/{handler.path}/'
-            logger.debug(f'[{self.__class__.__name__}] adding route: {handler.method} /{self.url_root}{path}')
+            logger.debug(
+                f'[{self.__class__.__name__}] adding route: {handler.method} /{self.url_root}{path}'
+            )
             adder = getattr(app.router, f'add_{handler.method.lower()}')
             adder(path, handler)
 

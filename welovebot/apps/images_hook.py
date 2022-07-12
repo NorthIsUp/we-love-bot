@@ -11,7 +11,7 @@ from aiohttp.web import Request, Response
 from welovebot.lib.web import WebCog
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class ImagesHook(WebCog):
     url_root: ClassVar[str] = 'email_images'
 

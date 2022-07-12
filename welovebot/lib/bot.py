@@ -7,7 +7,7 @@ from functools import cached_property
 from logging import Logger, getLogger
 from pathlib import Path
 from types import ModuleType
-from typing import TYPE_CHECKING, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Union
 
 import nextcord
 from nextcord.ext import commands
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Bot(commands.Bot):
     def __init__(
         self,
@@ -136,7 +136,9 @@ class Bot(commands.Bot):
         bot: bool = True,
         # roots to search for cogs and other extensions
         installed_apps: Sequence[str] = (),
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         self.discover_extensions(*installed_apps)
         self.dispatch('run')
-        super().run(token or self.config['DISCORD_TOKEN'])
+        super().run(token or self.config['DISCORD_TOKEN'], *args, **kwargs)

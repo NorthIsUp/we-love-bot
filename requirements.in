@@ -1,6 +1,7 @@
 # discord-py-slash-command~=1.1.2
 
-git+git://github.com/NorthIsUp/pytinybeans#egg=pytinybeans
+# git+git://github.com/NorthIsUp/pytinybeans#egg=pytinybeans
+https://github.com/NorthIsUp/pytinybeans/archive/refs/heads/master.zip
 
 aiohttp~=3.8.1
 aiosmtplib~=1.1.6

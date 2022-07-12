@@ -20,6 +20,7 @@ from typing import (
     Type,
     Union,
 )
+from uuid import uuid4
 
 from nextcord.ext import commands
 
@@ -39,6 +40,10 @@ TaskCallableT = Callable[..., Awaitable[None]]
 
 
 class BaseCog(commands.Cog):
+    @cached_property
+    def name(self) -> str:
+        return self.__class__.__name__
+
     @property
     def enabled(self) -> bool:
         return self.config.get('ENABLED', True)
@@ -85,9 +90,10 @@ class BaseCog(commands.Cog):
 
                 @wraps(func)
                 async def logging_func(self: BaseCog, *args: Any, **kwargs: Any) -> None:
-                    cls.debug(f'[{listener}-{func.__name__}] starting')
+                    uuid = uuid4()
+                    cls.debug(f'[{listener}-{func.__name__}] starting {uuid}')
                     await func(self, *args, **kwargs)
-                    cls.debug(f'[{listener}-{func.__name__}] complete')
+                    cls.debug(f'[{listener}-{func.__name__}] complete {uuid}')
 
                 cls.debug(f'[{listener}-{func.__name__}] scheduling')
                 await self.loop.create_task(logging_func(self, *args, **kwargs))
@@ -280,7 +286,7 @@ class CogConfigCheck(int, Enum):
         return self.value in (self.YES, self.RAISE)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Cog(BaseCog):
     bot: Bot
     check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.NO
@@ -308,10 +314,6 @@ class Cog(BaseCog):
 
         if should_raise:
             raise RuntimeError(f'missing config ({",".join(should_raise)})')
-
-    @cached_property
-    def name(self) -> str:
-        return self.__class__.__name__
 
     @cached_property
     def config(self) -> ChainConfig:

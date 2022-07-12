@@ -1,7 +1,9 @@
 FROM python:3.9
 WORKDIR /app
 
-RUN python3 -m pip install --no-cache-dir pip-tools==6.1.0
+RUN \
+    python3 -m pip install -U pip \
+    && python3 -m pip install --no-cache-dir pip-tools==6.8.0
 
 COPY requirements.in ./
 RUN \
