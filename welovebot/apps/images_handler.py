@@ -3,8 +3,7 @@ from __future__ import annotations
 import asyncio
 import io
 import json
-from asyncio import Semaphore
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from http.client import OK

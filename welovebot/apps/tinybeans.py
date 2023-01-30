@@ -9,12 +9,15 @@ import asyncstdlib as a
 from pytinybeans.pytinybeans import PyTinybeans, TinybeanChild, TinybeanEntry
 
 from welovebot.lib.cog import Cog, CogConfigCheck
+from welovebot.lib.web import WebCog
 
 
 @dataclass(unsafe_hash=True)
-class Tinybeans(Cog):
+class Tinybeans(WebCog):
     tb: PyTinybeans = field(default_factory=PyTinybeans)
     check_config_safe: ClassVar[CogConfigCheck] = CogConfigCheck.RAISE
+
+    url_root = 'tinybeans'
 
     class Config:
         LOGIN: str
@@ -46,6 +49,7 @@ class Tinybeans(Cog):
         return self.tb.logged_in
 
     async def entries(self) -> AsyncGenerator[TinybeanEntry, None]:
+        entry: TinybeanEntry
         for c in await self.children:
             async for entry in self.tb.get_entries(c, limit=self.scrape_after_date):
                 yield entry
@@ -68,3 +72,7 @@ class Tinybeans(Cog):
                     timestamp=entry.timestamp,
                     uuid=entry.uuid,
                 )
+
+    @WebCog.route('GET', '/hello')
+    async def foo(self, request: Request) -> Response:
+        return Response(text='hello there')

@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass, field
+from http.cookies import Morsel
 from typing import Dict, Iterable, Optional, Union, cast
 
 import requests
@@ -106,7 +107,7 @@ class NixPlay:
         self.cookies = r.cookies
 
         # save the CSRF token
-        self.csrftok = cast(Optional[str], r.cookies.get('prod.csrftoken'))
+        self.csrftok = r.cookies['prod.csrftoken']
 
         return j
 
