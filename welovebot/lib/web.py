@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from abc import ABC
 from asyncio import Semaphore
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, ClassVar, Iterable, List, Literal, Optional
+from typing import Callable, ClassVar, Iterable, List, Literal, Optional
 
 from aiohttp import web, web_middlewares
 

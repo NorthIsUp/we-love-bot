@@ -2,14 +2,10 @@ import io
 import logging
 from asyncio import Lock, Semaphore
 from copy import deepcopy
-from dataclasses import dataclass, field
-from functools import partialmethod
-from optparse import Option
-from pathlib import Path
-from typing import Any, Callable, ClassVar, Dict, Literal, Optional, Union, cast
+from dataclasses import dataclass
+from typing import Any, ClassVar, Dict, Literal, Optional, Union
 
 import aiohttp
-import async_timeout
 from aiohttp.client_exceptions import ClientResponseError
 
 _LOGGER = logging.getLogger(__name__)

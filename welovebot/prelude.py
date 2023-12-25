@@ -11,4 +11,9 @@ from .lib.cog import Cog
 ChannelT = Union[n_abc.GuildChannel, n_abc.PrivateChannel]
 
 __all__ = [
-    'Cog', 'Member', 'Guild', 'User', 'Context', ]  # 'SlashContext',]
+    'Cog',
+    'Member',
+    'Guild',
+    'User',
+    'Context',
+]  # 'SlashContext',]
