@@ -27,7 +27,7 @@ from typing import (
     cast,
 )
 
-from redis import Redis, StrictRedis
+from redis import Redis
 
 from welovebot import constants
 
@@ -354,6 +354,7 @@ class RedisConfig(Config):
 
     def setdefault(self, key: str, default: Any = None) -> Any:
         self.client.setnx(key, default)
+
 
 @dataclass
 class BotConfig(EnvConfig):

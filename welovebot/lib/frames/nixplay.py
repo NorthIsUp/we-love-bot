@@ -1,7 +1,6 @@
 import json
 from dataclasses import dataclass, field
-from http.cookies import Morsel
-from typing import Dict, Iterable, Optional, Union, cast
+from typing import Dict, Iterable, Optional, Union
 
 import requests
 from requests.cookies import RequestsCookieJar

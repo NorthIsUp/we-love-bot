@@ -4,7 +4,7 @@ import json
 import re
 from dataclasses import dataclass
 from http.client import BAD_REQUEST, OK
-from typing import Callable, ClassVar, Dict, List, Optional, Union
+from typing import ClassVar, Dict, List, Optional, Union
 
 from aiohttp.web import Request, Response
 
